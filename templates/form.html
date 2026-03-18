@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Instagram Post Kontrol</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #000000 0%, #0a0a1a 50%, #0d0d1f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 10px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(30, 30, 60, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(20, 20, 50, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Responsive form card */
+        .form-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            padding: 20px 15px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .form-card h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Responsive text and inputs */
+        .form-label {
+            font-size: 13px;
+        }
+
+        .form-control, .form-select {
+            font-size: 13px;
+            padding: 10px 12px;
+        }
+
+        /* Mobile styles */
+        @media (min-width: 576px) {
+            .form-card {
+                padding: 25px 20px;
+                border-radius: 20px;
+            }
+            .form-card h2 {
+                font-size: 24px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            .form-card {
+                padding: 30px 25px;
+                border-radius: 24px;
+            }
+            .form-card h2 {
+                font-size: 26px;
+                margin-bottom: 25px;
+            }
+            .form-label {
+                font-size: 14px;
+            }
+            .form-control, .form-select {
+                font-size: 14px;
+                padding: 12px 14px;
+            }
+        }
+
+        @media (min-width: 992px) {
+            .form-card {
+                padding: 35px 30px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .form-card {
+                max-width: 600px;
+            }
+        }
+
+        /* Small mobile fixes */
+        @media (max-width: 400px) {
+            .form-card {
+                padding: 15px 12px;
+                border-radius: 12px;
+            }
+            .form-card h2 {
+                font-size: 18px;
+            }
+            .btn {
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+        }
+
+        /* Touch-friendly for mobile */
+        @media (hover: none) and (pointer: coarse) {
+            .form-control, .form-select, .btn {
+                min-height: 44px;
+            }
+        }
+
+        /* Custom dropdown responsive */
+        .dropdown-trigger {
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+        }
+
+        .dropdown-menu {
+            width: 100%;
+            min-width: unset;
+        }
+
+        @media (min-width: 576px) {
+            .dropdown-trigger {
+                padding: 12px 16px !important;
+                font-size: 14px !important;
+            }
+        }
+
+        /* Mode toggle responsive */
+        .mode-toggle-group {
+            flex-direction: row;
+            gap: 8px;
+        }
+
+        .mode-toggle-btn {
+            flex: 1;
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+
+        @media (min-width: 576px) {
+            .mode-toggle-btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
+
+        /* Textarea responsive */
+        textarea.form-control {
+            min-height: 100px;
+            font-size: 13px;
+        }
+
+        @media (min-width: 576px) {
+            textarea.form-control {
+                min-height: 120px;
+                font-size: 14px;
+            }
+        }
+
+        .form-card h2 {
+            color: #ffffff;
+            font-weight: 700;
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-align: center;
+            letter-spacing: -0.5px;
+        }
+
+        .form-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-control, .form-control:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-radius: 12px;
+            padding: 12px 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: #7877c6;
+            box-shadow: 0 0 0 0.2rem rgba(120, 119, 198, 0.25);
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        #user_count {
+            color: #fbbf24;
+            font-size: 13px;
+            display: block;
+            margin-top: 6px;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 14px;
+            font-weight: 600;
+            color: #fff;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #252538 0%, #1a1a2e 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 14px;
+            font-weight: 600;
+            color: #fff;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #252538 0%, #1a1a2e 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .btn-admin {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 14px;
+            font-weight: 600;
+            color: #fff;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-admin:hover {
+            background: linear-gradient(135deg, #252538 0%, #1a1a2e 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-card {
+            width: min(460px, 92vw);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            padding: 24px;
+            color: #fff;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .modal-text {
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 18px;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .mode-toggle-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .mode-toggle-btn {
+            flex: 1;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.85);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-toggle-btn.active {
+            background: rgba(120,119,198,0.3);
+            border-color: rgba(120,119,198,0.7);
+            color: #fff;
+        }
+
+        .mode-hint {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body data-token-error-message='{{ token_error_message|default("", true)|e }}'>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-10 col-lg-8 col-xl-6">
+                <div class="form-card">
+                    <h2><i class="fas fa-comments me-2"></i>Yorum Kontrolleri</h2>
+                    <form id="checkForm" method="post" action="/">
+                        <div class="mb-3">
+                            <label for="post_link_single" class="form-label">
+                                <i class="fab fa-instagram me-2"></i>İnstagram Post Link(ler)i
+                            </label>
+                            <div class="mode-toggle-group">
+                                <button type="button" id="modeSingle" class="mode-toggle-btn active" onclick="setCheckMode('single')">
+                                    Tekli kontrol
+                                </button>
+                                <button type="button" id="modeMulti" class="mode-toggle-btn" onclick="setCheckMode('multi')">
+                                    Toplu kontrol
+                                </button>
+                            </div>
+                            <label id="sharersFilterWrapper" class="modern-checkbox-wrapper mb-3" for="onlySharersCheck" style="display: none;">
+                                <div class="checkbox-content">
+                                    <div class="icon-box">
+                                         <i class="fas fa-filter"></i>
+                                    </div>
+                                    <div class="text-content">
+                                        <span class="title">Sadece Atanları Getir</span>
+                                        <span class="desc">Gruptaki herkes yerine paylaşım yapanları listeler</span>
+                                    </div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="onlySharersCheck" onchange="handleSharersCheckbox()">
+                                    <span class="slider"></span>
+                                </div>
+                            </label>
+                            
+                            <!-- Yeni Filtre: Beğenisi 90 ve altı olanlar -->
+                            <label id="lowLikesFilterWrapper" class="modern-checkbox-wrapper mb-3" for="lowLikesCheck" style="display: none;">
+                                <div class="checkbox-content">
+                                    <div class="icon-box" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                                         <i class="fas fa-heart-broken"></i>
+                                    </div>
+                                    <div class="text-content">
+                                        <span class="title">Beğenisi 90 ve Altı Olanlar</span>
+                                        <span class="desc">90 ve altı beğeni alan paylaşımları seçer (Listeyi etkilemez)</span>
+                                    </div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="lowLikesCheck" name="check_likes" value="on" onchange="handleLowLikesCheckbox()">
+                                    <span class="slider red-slider"></span>
+                                </div>
+                            </label>
+                            <style>
+                            .modern-checkbox-wrapper {
+                                display: flex;
+                                align-items: center;
+                                justify-content: space-between;
+                                background: linear-gradient(145deg, rgba(30, 30, 45, 0.4) 0%, rgba(20, 20, 35, 0.6) 100%);
+                                border: 1px solid rgba(168, 85, 247, 0.2);
+                                border-radius: 16px;
+                                padding: 12px 16px;
+                                cursor: pointer;
+                                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                            }
+                            .modern-checkbox-wrapper:hover {
+                                border-color: rgba(168, 85, 247, 0.5);
+                                background: linear-gradient(145deg, rgba(35, 35, 55, 0.6) 0%, rgba(25, 25, 45, 0.8) 100%);
+                                box-shadow: 0 4px 15px rgba(168, 85, 247, 0.15);
+                            }
+                            .modern-checkbox-wrapper .checkbox-content {
+                                display: flex;
+                                align-items: center;
+                                gap: 12px;
+                            }
+                            .modern-checkbox-wrapper .icon-box {
+                                width: 36px;
+                                height: 36px;
+                                border-radius: 10px;
+                                background: rgba(168, 85, 247, 0.15);
+                                color: #a855f7;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 14px;
+                                transition: all 0.3s ease;
+                            }
+                            .modern-checkbox-wrapper:hover .icon-box {
+                                background: rgba(168, 85, 247, 0.25);
+                                color: #c084fc;
+                            }
+                            .modern-checkbox-wrapper .text-content {
+                                display: flex;
+                                flex-direction: column;
+                            }
+                            .modern-checkbox-wrapper .title {
+                                color: rgba(255, 255, 255, 0.95);
+                                font-size: 13px;
+                                font-weight: 600;
+                                letter-spacing: 0.3px;
+                            }
+                            .modern-checkbox-wrapper .desc {
+                                color: rgba(255, 255, 255, 0.5);
+                                font-size: 11px;
+                                margin-top: 1px;
+                            }
+                            .toggle-switch {
+                                position: relative;
+                                width: 42px;
+                                height: 24px;
+                                flex-shrink: 0;
+                            }
+                            .toggle-switch input {
+                                opacity: 0;
+                                width: 0;
+                                height: 0;
+                            }
+                            .toggle-switch .slider {
+                                position: absolute;
+                                cursor: pointer;
+                                top: 0; left: 0; right: 0; bottom: 0;
+                                background-color: rgba(255, 255, 255, 0.1);
+                                transition: .4s;
+                                border-radius: 24px;
+                                border: 1px solid rgba(255,255,255,0.05);
+                            }
+                            .toggle-switch .slider:before {
+                                position: absolute;
+                                content: "";
+                                height: 18px;
+                                width: 18px;
+                                left: 2px;
+                                bottom: 2px;
+                                background-color: #fff;
+                                transition: .4s cubic-bezier(0.4, 0.0, 0.2, 1);
+                                border-radius: 50%;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                            }
+                            .toggle-switch input:checked + .slider {
+                                background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+                                border-color: #a855f7;
+                            }
+                            .toggle-switch input:checked + .slider:before {
+                                transform: translateX(18px);
+                            }
+                            
+                            /* Kırmızı konseptli switch için override */
+                            .toggle-switch input:checked + .slider.red-slider {
+                                background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                                border-color: #ef4444;
+                            }
+                            .modern-checkbox-wrapper:hover .icon-box[style*="color: #ef4444"] {
+                                background: rgba(239, 68, 68, 0.25) !important;
+                                color: #f87171 !important;
+                            }
+                            </style>
+                            <div id="modeHint" class="mode-hint">
+                                Tekli kontrol: Tek bir post/reel linki gir.
+                            </div>
+                            <!-- Tekli kontrol: input -->
+                            <input type="text"
+                                   id="post_link_single"
+                                   name="post_link"
+                                   class="form-control"
+                                   placeholder="https://www.instagram.com/p/...">
+                            <!-- Toplu kontrol: textarea (varsayılan gizli) -->
+                            <textarea id="post_link_multi"
+                                      name="post_link"
+                                      class="form-control mt-2"
+                                      style="display:none;"
+                                      placeholder="Her satira bir post/reel linki yazin&#10;https://www.instagram.com/p/...&#10;https://www.instagram.com/reel/..."
+                                      rows="4"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="grup_uye" class="form-label d-flex align-items-center">
+                                <div><i class="fas fa-users me-2"></i>Grup Üye Listesi</div>
+                                <span id="selectedGroupBadge" class="badge ms-auto" style="background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.5); color: #e9d5ff; font-weight: 500; letter-spacing: 0.5px; display: none;"></span>
+                            </label>
+                            <div class="mb-2">
+                                <div class="custom-dropdown" id="groupDropdown">
+                                    <button type="button" class="dropdown-trigger" onclick="toggleDropdown('groupDropdown')">
+                                        <span class="dropdown-text">-- Instagram Grubu Seç --</span>
+                                        <i class="fas fa-chevron-down dropdown-arrow"></i>
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <input type="text" class="dropdown-search" placeholder="Grup ara..." onkeyup="filterDropdown('groupDropdown', this.value)">
+                                        <div class="dropdown-options"></div>
+                                    </div>
+                                </div>
+                                <select id="groupSelect" class="hidden-select" onchange="loadGroupMembers()">
+                                    <option value="">-- Instagram Grubu Seç --</option>
+                                </select>
+                            </div>
+                            <div id="groupPostsSection" class="mb-2" style="display: none;">
+                                <div class="d-flex gap-2 mb-2">
+                                    <div class="custom-dropdown flex-grow-1" id="dateDropdown">
+                                        <button type="button" class="dropdown-trigger" onclick="toggleDropdown('dateDropdown')">
+                                            <span class="dropdown-text">Dün</span>
+                                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                                        </button>
+                                        <div class="dropdown-menu">
+                                            <div class="dropdown-options">
+                                                <div class="dropdown-option selected" onclick="selectDateAndLoadPosts('yesterday', 'Dün')">Dün</div>
+                                                <div class="dropdown-option" onclick="selectDateAndLoadPosts('today', 'Bugün')">Bugün</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <select id="dateFilter" class="hidden-select">
+                                        <option value="yesterday" selected>Dün</option>
+                                        <option value="today">Bugün</option>
+                                    </select>
+                                </div>
+                                <div class="custom-dropdown" id="postDropdown">
+                                    <button type="button" class="dropdown-trigger" onclick="toggleDropdown('postDropdown')">
+                                        <span class="dropdown-text">-- Paylaşım Seç --</span>
+                                        <i class="fas fa-chevron-down dropdown-arrow"></i>
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <input type="text" class="dropdown-search" placeholder="Paylaşım ara..." onkeyup="filterDropdown('postDropdown', this.value)">
+                                        <div class="dropdown-options"></div>
+                                    </div>
+                                </div>
+                                <select id="postSelect" class="hidden-select" onchange="addPostLink()">
+                                    <option value="">-- Paylaşım Seç --</option>
+                                </select>
+                                <style>
+                                    .custom-dropdown {
+                                        position: relative;
+                                        width: 100%;
+                                    }
+                                    .custom-dropdown.small {
+                                        width: 120px;
+                                    }
+                                    .dropdown-trigger {
+                                        width: 100%;
+                                        padding: 12px 16px;
+                                        background: linear-gradient(135deg, rgba(30, 30, 50, 0.9) 0%, rgba(20, 20, 35, 0.95) 100%);
+                                        border: 1px solid rgba(168, 85, 247, 0.3);
+                                        border-radius: 12px;
+                                        color: #fff;
+                                        font-size: 14px;
+                                        font-weight: 500;
+                                        cursor: pointer;
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                        transition: all 0.25s ease;
+                                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                                    }
+                                    .dropdown-trigger:hover {
+                                        border-color: rgba(168, 85, 247, 0.6);
+                                        box-shadow: 0 6px 20px rgba(168, 85, 247, 0.15);
+                                    }
+                                    .dropdown-trigger.active {
+                                        border-color: #a855f7;
+                                        box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+                                    }
+                                    .dropdown-text {
+                                        overflow: hidden;
+                                        text-overflow: ellipsis;
+                                        white-space: nowrap;
+                                        max-width: 90%;
+                                    }
+                                    .dropdown-arrow {
+                                        transition: transform 0.3s ease;
+                                        color: #a855f7;
+                                        font-size: 12px;
+                                    }
+                                    .dropdown-trigger.active .dropdown-arrow {
+                                        transform: rotate(180deg);
+                                    }
+                                    .dropdown-menu {
+                                        position: absolute;
+                                        top: calc(100% + 8px);
+                                        left: 0;
+                                        right: 0;
+                                        background: linear-gradient(180deg, #1e1e35 0%, #15152a 100%);
+                                        border: 1px solid rgba(168, 85, 247, 0.3);
+                                        border-radius: 12px;
+                                        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 85, 247, 0.1);
+                                        z-index: 1000;
+                                        opacity: 0;
+                                        visibility: hidden;
+                                        transform: translateY(-10px);
+                                        transition: all 0.25s ease;
+                                        max-height: 300px;
+                                        overflow: hidden;
+                                        display: flex;
+                                        flex-direction: column;
+                                    }
+                                    .dropdown-menu.show {
+                                        opacity: 1;
+                                        visibility: visible;
+                                        transform: translateY(0);
+                                    }
+                                    .dropdown-search {
+                                        width: calc(100% - 16px);
+                                        margin: 8px;
+                                        padding: 12px 16px;
+                                        background: rgba(0, 0, 0, 0.4);
+                                        border: 1px solid rgba(255, 255, 255, 0.1);
+                                        border-radius: 8px;
+                                        color: #fff;
+                                        font-size: 13px;
+                                        outline: none;
+                                        transition: border-color 0.2s;
+                                    }
+                                    .dropdown-search:focus {
+                                        border-color: rgba(168, 85, 247, 0.6);
+                                        box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.15);
+                                    }
+                                    .dropdown-search::placeholder {
+                                        color: rgba(255, 255, 255, 0.4);
+                                    }
+                                    .dropdown-options {
+                                        overflow-y: auto;
+                                        max-height: 220px;
+                                        padding: 8px;
+                                    }
+                                    .dropdown-options::-webkit-scrollbar {
+                                        width: 6px;
+                                    }
+                                    .dropdown-options::-webkit-scrollbar-track {
+                                        background: rgba(255, 255, 255, 0.05);
+                                        border-radius: 3px;
+                                    }
+                                    .dropdown-options::-webkit-scrollbar-thumb {
+                                        background: rgba(168, 85, 247, 0.4);
+                                        border-radius: 3px;
+                                    }
+                                    .dropdown-option {
+                                        padding: 12px 14px;
+                                        border-radius: 8px;
+                                        cursor: pointer;
+                                        transition: all 0.15s ease;
+                                        color: rgba(255, 255, 255, 0.85);
+                                        font-size: 13px;
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 10px;
+                                    }
+                                    .dropdown-option:hover {
+                                        background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+                                        color: #fff;
+                                    }
+                                    .dropdown-option.selected {
+                                        background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+                                        color: #fff;
+                                        font-weight: 600;
+                                        box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+                                    }
+                                    .dropdown-option .icon {
+                                        width: 20px;
+                                        height: 20px;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        font-size: 12px;
+                                    }
+                                    .hidden-select {
+                                        display: none;
+                                    }
+                                </style>
+                            </div>
+                            <textarea id="grup_uye" name="grup_uye" class="form-control" 
+                                      placeholder="Her satıra bir kullanıcı adı yazın" 
+                                      oninput="updateUserCount()" required></textarea>
+                            <span id="user_count">0 Adet kullanıcı eklendi.</span>
+                        </div>
+                        <button type="submit" id="submitCheckBtn" class="btn btn-primary w-100 mb-3">
+                            <i class="fas fa-search me-2"></i>Kontrol Et
+                        </button>
+                    </form>
+                    <button onclick="location.href='token_al'" class="btn btn-secondary w-100 mb-2">
+                        <i class="fas fa-key me-2"></i>Token Al
+                    </button>
+                    <button onclick="location.href='admin'" class="btn btn-admin w-100">
+                        <i class="fas fa-lock me-2"></i>Admin Panel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tokenErrorModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-title"><i class="fas fa-triangle-exclamation me-2"></i>Token Uyarisi</div>
+            <div class="modal-text" id="tokenErrorText"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary w-100" id="closeTokenModalBtn">Tamam</button>
+                <button type="button" class="btn btn-admin w-100" onclick="location.href='/admin'">Admin Panel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- İlerleme overlay -->
+    <div id="progressOverlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card text-center">
+            <div class="modal-title"><i class="fas fa-spinner fa-spin me-2"></i>Yorumlar cekiliyor</div>
+            <div class="modal-text" id="progressText">Link donusturuluyor...</div>
+            <div class="progress mt-2" style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%; background: #7877c6; border-radius: 8px;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/form.js') }}"></script>
+    {% if refresh %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const link = urlParams.get('link') || '';
+            const group = urlParams.get('group') || '';
+            
+            if (link) {
+                document.getElementById('post_link').value = decodeURIComponent(link);
+            }
+            if (group) {
+                document.getElementById('grup_uye').value = decodeURIComponent(group);
+            }
+            
+            if (link) {
+                setTimeout(function() {
+                    document.getElementById('kontrolForm').dispatchEvent(new Event('submit'));
+                }, 500);
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,651 @@
+function showTokenErrorModal(message) {
+    const modal = document.getElementById("tokenErrorModal");
+    document.getElementById("tokenErrorText").textContent = message;
+    modal.classList.add("show");
+}
+
+function updateUserCount() {
+    const textarea = document.getElementById("grup_uye");
+    const userCountDisplay = document.getElementById("user_count");
+    const users = textarea.value.split("\n").filter((user) => user.trim() !== "");
+    userCountDisplay.textContent = users.length + " Adet kullanici eklendi.";
+}
+
+window.updateUserCount = updateUserCount;
+
+// Global değişken - seçili grup ID'si
+let currentThreadId = '';
+
+function loadGroups() {
+    const select = document.getElementById("groupSelect");
+    const dropdownText = document.querySelector('#groupDropdown .dropdown-text');
+    const dropdownOptions = document.querySelector('#groupDropdown .dropdown-options');
+    
+    dropdownOptions.innerHTML = '<div class="dropdown-option" style="color: rgba(255,255,255,0.5);">Gruplar yükleniyor...</div>';
+    
+    fetch("/api/get_groups")
+        .then(r => r.json())
+        .then(data => {
+            if (!data.ok) {
+                dropdownOptions.innerHTML = '<div class="dropdown-option" style="color: rgba(255,255,255,0.5);">Grup bulunamadı</div>';
+                showTokenErrorModal(data.error || "Gruplar yüklenemedi");
+                return;
+            }
+            
+            if (data.groups && data.groups.length > 0) {
+                dropdownOptions.innerHTML = '';
+                data.groups.forEach(g => {
+                    const div = document.createElement('div');
+                    div.className = 'dropdown-option';
+                    div.innerHTML = `<i class="fas fa-users" style="color: #a855f7;"></i> ${g.name} <span style="opacity: 0.6;">(${g.member_count} üye)</span>`;
+                    div.onclick = function(e) {
+                        e.stopPropagation();
+                        const textSpan = document.querySelector('#groupDropdown .dropdown-text');
+                        textSpan.textContent = `${g.name} (${g.member_count} üye)`;
+                        
+                        // Set value to hidden select and global variable
+                        const hiddenSelect = document.getElementById('groupSelect');
+                        if (hiddenSelect) {
+                            hiddenSelect.value = g.id;
+                        }
+                        currentThreadId = g.id;
+                        
+                        // Load members when group is selected - pass threadId directly
+                        loadGroupMembers(g.id);
+                        
+                        // Update the badge
+                        const badge = document.getElementById('selectedGroupBadge');
+                        if (badge) {
+                            badge.textContent = g.name;
+                            badge.style.display = 'inline-block';
+                        }
+                        
+                        // Close dropdown
+                        document.querySelector('#groupDropdown .dropdown-menu').classList.remove('show');
+                        document.querySelector('#groupDropdown .dropdown-trigger').classList.remove('active');
+                    };
+                    dropdownOptions.appendChild(div);
+                });
+            } else {
+                dropdownOptions.innerHTML = '<div class="dropdown-option" style="color: rgba(255,255,255,0.5);">Grup bulunamadı</div>';
+            }
+        })
+        .catch(err => {
+            dropdownOptions.innerHTML = '<div class="dropdown-option" style="color: rgba(255,255,255,0.5);">Hata oluştu</div>';
+            showTokenErrorModal("Gruplar yüklenemedi: " + err.message);
+        });
+}
+
+function loadGroupMembers(threadIdFromDropdown) {
+    // Get threadId either from parameter or from hidden select
+    let threadId = threadIdFromDropdown;
+    if (!threadId) {
+        const select = document.getElementById("groupSelect");
+        threadId = select ? select.value : '';
+    }
+    
+    const textarea = document.getElementById("grup_uye");
+    const postsSection = document.getElementById("groupPostsSection");
+    const postSelect = document.getElementById("postSelect");
+    const dropdownText = document.querySelector('#groupDropdown .dropdown-text');
+    
+    if (!threadId) {
+        postsSection.style.display = "none";
+        const filterWrapper = document.getElementById("sharersFilterWrapper");
+        if (filterWrapper) filterWrapper.style.display = "none";
+        const likesFilterWrapper = document.getElementById("lowLikesFilterWrapper");
+        if (likesFilterWrapper) likesFilterWrapper.style.display = "none";
+        return;
+    }
+    
+    if (dropdownText) {
+        dropdownText.textContent = "Üyeler yükleniyor...";
+    }
+    
+    const hiddenSelect = document.getElementById("groupSelect");
+    if (hiddenSelect) {
+        hiddenSelect.disabled = true;
+    }
+    
+    fetch("/api/get_group_members/" + threadId)
+        .then(r => r.json())
+        .then(data => {
+            if (hiddenSelect) {
+                hiddenSelect.disabled = false;
+            }
+            
+            if (!data.ok) {
+                showTokenErrorModal(data.error || "Üyeler yüklenemedi");
+                if (dropdownText) dropdownText.textContent = "-- Instagram Grubu Seç --";
+                return;
+            }
+            
+            if (data.usernames && data.usernames.length > 0) {
+                window.fullGroupMembers = data.usernames;
+                const isChecked = document.getElementById("onlySharersCheck")?.checked;
+                if (!isChecked) {
+                    textarea.value = data.usernames.join("\n");
+                    updateUserCount();
+                } else {
+                    // It will be handled in loadGroupPosts silently
+                }
+            }
+        })
+        .catch(err => {
+            if (hiddenSelect) {
+                hiddenSelect.disabled = false;
+            }
+            if (dropdownText) dropdownText.textContent = "-- Instagram Grubu Seç --";
+            showTokenErrorModal("Üyeler yüklenemedi: " + err.message);
+        });
+    
+    // Paylaşımları yükle - threadId ile birlikte
+    postsSection.style.display = "block";
+    const filterWrapper = document.getElementById("sharersFilterWrapper");
+    if (filterWrapper) {
+        filterWrapper.style.display = "flex";
+    }
+    const likesFilterWrapper = document.getElementById("lowLikesFilterWrapper");
+    if (likesFilterWrapper) {
+        likesFilterWrapper.style.display = "flex";
+    }
+    loadGroupPosts(threadId);
+}
+
+// Wrapper function to load posts when date changes
+function selectDateAndLoadPosts(dateValue, dateText) {
+    console.log("selectDateAndLoadPosts called:", dateValue, dateText);
+    
+    // Update hidden select
+    const dateFilter = document.getElementById('dateFilter');
+    if (dateFilter) {
+        dateFilter.value = dateValue;
+        console.log("Set dateFilter value to:", dateValue);
+    }
+    
+    // Update dropdown text
+    const textSpan = document.querySelector('#dateDropdown .dropdown-text');
+    if (textSpan) {
+        textSpan.textContent = dateText;
+    }
+    
+    // Close dropdown
+    document.querySelector('#dateDropdown .dropdown-menu').classList.remove('show');
+    document.querySelector('#dateDropdown .dropdown-trigger').classList.remove('active');
+    
+    // Load posts with current group
+    loadGroupPostsWithCurrentGroup();
+}
+
+// Load posts using current group selection
+function loadGroupPostsWithCurrentGroup() {
+    console.log("loadGroupPostsWithCurrentGroup called, currentThreadId:", currentThreadId);
+    if (currentThreadId) {
+        loadGroupPosts(currentThreadId);
+    } else {
+        // Fallback to hidden select
+        const groupSelect = document.getElementById("groupSelect");
+        const threadId = groupSelect ? groupSelect.value : '';
+        if (threadId) {
+            loadGroupPosts(threadId);
+        }
+    }
+}
+
+function addPostLink() {
+    const postSelect = document.getElementById("postSelect");
+    const link = postSelect.value;
+    const linkInput = document.getElementById("post_link_single");
+    
+    if (link) {
+        linkInput.value = link;
+    }
+}
+
+function addAllPosts() {
+    const postSelect = document.getElementById("postSelect");
+    const multiInput = document.getElementById("post_link_multi");
+    const checkForm = document.getElementById("checkForm");
+    
+    // Önce eski post_sender inputlarını temizle
+    const oldInputs = checkForm.querySelectorAll('.post-sender-input');
+    oldInputs.forEach(input => input.remove());
+    
+    const options = postSelect.querySelectorAll("option");
+    const urls = [];
+    
+    options.forEach(opt => {
+        if (opt.value && opt.value.startsWith("http")) {
+            urls.push(opt.value);
+            // Her post için göndericiyi hidden input olarak ekle
+            const sender = opt.dataset.sender || '';
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'post_senders';
+            input.className = 'post-sender-input';
+            input.value = opt.value + '|' + sender;
+            checkForm.appendChild(input);
+        }
+    });
+    
+    if (urls.length === 0) {
+        return;
+    }
+    
+    // Var olanı silip tamamen yeni yüklenen linkleri basıyoruz
+    multiInput.value = urls.join("\n");
+}
+
+function loadGroupPosts(threadIdFromMembers) {
+    let threadId = threadIdFromMembers;
+    if (!threadId) {
+        const groupSelect = document.getElementById("groupSelect");
+        threadId = groupSelect ? groupSelect.value : '';
+    }
+    
+    const dateFilterEl = document.getElementById("dateFilter");
+    const dateFilter = dateFilterEl ? dateFilterEl.value : 'yesterday';
+    const postSelect = document.getElementById("postSelect");
+    const dropdownText = document.querySelector('#postDropdown .dropdown-text');
+    const dropdownOptions = document.querySelector('#postDropdown .dropdown-options');
+    
+    console.log("loadGroupPosts called, threadId:", threadId, "dateFilter:", dateFilter);
+    
+    if (!threadId) {
+        console.log("No threadId, returning");
+        return;
+    }
+    
+    if (dropdownText) {
+        dropdownText.textContent = "Paylaşımlar yükleniyor...";
+    }
+    
+    fetch("/api/get_group_posts/" + threadId + "?date=" + dateFilter)
+        .then(r => r.json())
+        .then(data => {
+            if (dropdownText) {
+                dropdownText.textContent = "-- Paylaşım Seç --";
+            }
+            if (!data.ok) {
+                dropdownOptions.innerHTML = '<div class="dropdown-option" style="color: rgba(255,255,255,0.5);">Paylaşım bulunamadı</div>';
+                return;
+            }
+            
+            if (data.posts) {
+                window.allFetchedPosts = data.posts;
+            } else {
+                window.allFetchedPosts = [];
+            }
+            
+            renderPosts();
+            
+            // Eğer checkbox işaretliyse, paylaşımlar yüklendikten sonra üye listesini otomatik filtrele
+            const isChecked = document.getElementById("onlySharersCheck")?.checked;
+            if (isChecked) {
+                fetchSharers(true); // silent
+            }
+            
+            // Eğer toplu kontrol modundaysa, paylaşımları otomatik ekle
+            if (window._checkMode === "multi") {
+                addAllPosts();
+            }
+        })
+        .catch(err => {
+            if (dropdownText) {
+                dropdownText.textContent = "-- Paylaşım Seç --";
+            }
+            dropdownOptions.innerHTML = '<div class="dropdown-option" style="color: rgba(255,255,255,0.5);">Hata oluştu</div>';
+        });
+}
+
+function handleLowLikesCheckbox() {
+    renderPosts();
+}
+
+function renderPosts() {
+    const postSelect = document.getElementById("postSelect");
+    const dropdownText = document.querySelector('#postDropdown .dropdown-text');
+    const dropdownOptions = document.querySelector('#postDropdown .dropdown-options');
+    
+    if (!postSelect || !dropdownOptions) return;
+    
+    postSelect.innerHTML = '';
+    const lowLikesChecked = document.getElementById("lowLikesCheck")?.checked;
+    
+    let postsToRender = window.allFetchedPosts || [];
+    
+    // Eğer '90 altı' filtresi aktifse
+    if (lowLikesChecked) {
+        postsToRender = postsToRender.filter(p => p.like_count !== undefined && p.like_count !== null && p.like_count <= 90);
+    }
+    
+    if (postsToRender.length > 0) {
+        dropdownOptions.innerHTML = '';
+        postsToRender.forEach(p => {
+            const icon = p.media_type === 'video' ? '🎬' : '📷';
+            
+            // Add to hidden select
+            const opt = document.createElement('option');
+            opt.value = p.url;
+            opt.dataset.sender = p.username || '';
+            opt.text = `${icon} ${p.username} - ${p.date}`;
+            postSelect.appendChild(opt);
+            
+            // Add to custom dropdown
+            const div = document.createElement('div');
+            div.className = 'dropdown-option';
+            // Optional: show likes if lowLikesChecked to confirm
+            const likesHtml = lowLikesChecked && p.like_count !== -1 ? ` <span style="color: #ef4444; font-size: 10px; margin-left: 5px;">(❤ ${p.like_count})</span>` : '';
+            div.innerHTML = `<span class="icon">${icon}</span> <span>${p.username}</span>${likesHtml} <span style="opacity: 0.6; font-size: 11px;">${p.date}</span>`;
+            div.onclick = function() {
+                dropdownText.textContent = `${icon} ${p.username} - ${p.date}`;
+                postSelect.value = p.url;
+                postSelect.dispatchEvent(new Event('change'));
+                
+                // Close dropdown
+                document.querySelector('#postDropdown .dropdown-menu').classList.remove('show');
+                document.querySelector('#postDropdown .dropdown-trigger').classList.remove('active');
+            };
+            dropdownOptions.appendChild(div);
+        });
+    } else {
+        dropdownOptions.innerHTML = '<div class="dropdown-option" style="color: rgba(255,255,255,0.5);">Filtrelenmiş paylaşım bulunamadı</div>';
+    }
+    
+    // Filtreleme sonrası toplu kontroldeysek tekrar ekle
+    if (window._checkMode === "multi") {
+        addAllPosts();
+    }
+}
+
+window.addPostLink = addPostLink;
+window.loadGroupPosts = loadGroupPosts;
+window.loadGroupPostsWithCurrentGroup = loadGroupPostsWithCurrentGroup;
+window.selectDateAndLoadPosts = selectDateAndLoadPosts;
+window.addAllPosts = addAllPosts;
+
+window.loadGroups = loadGroups;
+window.loadGroupMembers = loadGroupMembers;
+window.addPostLink = addPostLink;
+
+function setCheckMode(mode) {
+    window._checkMode = mode === "multi" ? "multi" : "single";
+
+    const singleBtn = document.getElementById("modeSingle");
+    const multiBtn = document.getElementById("modeMulti");
+    const hint = document.getElementById("modeHint");
+    const singleInput = document.getElementById("post_link_single");
+    const multiTextarea = document.getElementById("post_link_multi");
+    if (!singleBtn || !multiBtn || !hint || !singleInput || !multiTextarea) return;
+
+    if (mode === "multi") {
+        singleBtn.classList.remove("active");
+        multiBtn.classList.add("active");
+        hint.textContent = "Toplu kontrol: Her satira bir post/reel linki yazabilirsiniz.";
+        singleInput.style.display = "none";
+        singleInput.disabled = true;
+        multiTextarea.style.display = "block";
+        multiTextarea.disabled = false;
+        multiTextarea.rows = 4;
+        if (!multiTextarea.value.includes("\n")) {
+            multiTextarea.placeholder = "Her satira bir post/reel linki yazin\nhttps://www.instagram.com/p/...\nhttps://www.instagram.com/reel/...";
+        }
+        
+        const postDropdown = document.getElementById("postDropdown");
+        if (postDropdown) postDropdown.style.display = "none";
+        
+        // Eğer zaten grup seçilmiş ve paylaşımlar yüklüyse otomatik ekle
+        const postSelect = document.getElementById("postSelect");
+        if (postSelect) {
+            const hasPosts = Array.from(postSelect.options).some(opt => opt.value && opt.value.startsWith("http"));
+            if (hasPosts) {
+                addAllPosts();
+            }
+        }
+    } else {
+        multiBtn.classList.remove("active");
+        singleBtn.classList.add("active");
+        hint.textContent = "Tekli kontrol: Tek bir post/reel linki gir.";
+        multiTextarea.style.display = "none";
+        multiTextarea.disabled = true;
+        singleInput.style.display = "block";
+        singleInput.disabled = false;
+        singleInput.placeholder = "https://www.instagram.com/p/...";
+        
+        const postDropdown = document.getElementById("postDropdown");
+        if (postDropdown) postDropdown.style.display = "block";
+    }
+}
+
+function showProgress(show) {
+    const overlay = document.getElementById("progressOverlay");
+    if (!overlay) return;
+    overlay.style.display = show ? "flex" : "none";
+    overlay.classList.toggle("show", show);
+}
+
+function setProgressText(text, percent) {
+    const el = document.getElementById("progressText");
+    const bar = document.getElementById("progressBar");
+    if (el) el.textContent = text;
+    if (bar) {
+        bar.style.width = (percent || 0) + "%";
+        bar.setAttribute("aria-valuenow", percent || 0);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const tokenErrorMessage = document.body.dataset.tokenErrorMessage;
+
+    document.getElementById("closeTokenModalBtn").addEventListener("click", () => {
+        document.getElementById("tokenErrorModal").classList.remove("show");
+    });
+
+    document.getElementById("tokenErrorModal").addEventListener("click", (event) => {
+        if (event.target.id === "tokenErrorModal") {
+            event.currentTarget.classList.remove("show");
+        }
+    });
+
+    if (tokenErrorMessage) {
+        showTokenErrorModal(tokenErrorMessage);
+    }
+
+    // Varsayilan olarak tekli kontrol modu
+    setCheckMode("single");
+
+    // Gruplari otomatik yükle
+    loadGroups();
+
+    const form = document.getElementById("checkForm");
+    const submitBtn = document.getElementById("submitCheckBtn");
+    if (form && submitBtn) {
+        form.addEventListener("submit", (e) => {
+            const singleInput = document.getElementById("post_link_single");
+            const multiInput = document.getElementById("post_link_multi");
+            
+            if (!singleInput.value.trim() && !multiInput.value.trim()) {
+                e.preventDefault();
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-search me-2"></i>Kontrol Et';
+                alert("Lütfen en az bir post linki girin.");
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Kontrol Ediliyor...';
+        });
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+            if (!dropdown.contains(e.target)) {
+                const menu = dropdown.querySelector('.dropdown-menu');
+                const trigger = dropdown.querySelector('.dropdown-trigger');
+                if (menu && menu.classList.contains('show')) {
+                    menu.classList.remove('show');
+                    trigger.classList.remove('active');
+                }
+            }
+        });
+    });
+});
+
+// Custom dropdown functions
+function toggleDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    const menu = dropdown.querySelector('.dropdown-menu');
+    const trigger = dropdown.querySelector('.dropdown-trigger');
+    
+    // Close other dropdowns
+    document.querySelectorAll('.custom-dropdown').forEach(d => {
+        if (d.id !== dropdownId) {
+            const m = d.querySelector('.dropdown-menu');
+            const t = d.querySelector('.dropdown-trigger');
+            if (m && m.classList.contains('show')) {
+                m.classList.remove('show');
+                t.classList.remove('active');
+            }
+        }
+    });
+    
+    menu.classList.toggle('show');
+    trigger.classList.toggle('active');
+}
+
+function selectDropdownOption(dropdownId, value, text) {
+    const dropdown = document.getElementById(dropdownId);
+    const menu = dropdown.querySelector('.dropdown-menu');
+    const trigger = dropdown.querySelector('.dropdown-trigger');
+    const textSpan = trigger.querySelector('.dropdown-text');
+    const hiddenSelect = dropdown.parentElement.querySelector('.hidden-select');
+    
+    textSpan.textContent = text;
+    menu.classList.remove('show');
+    trigger.classList.remove('active');
+    
+    if (hiddenSelect) {
+        hiddenSelect.value = value;
+        hiddenSelect.dispatchEvent(new Event('change'));
+    }
+    
+    // Update selected state
+    dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    event.target.classList.add('selected');
+}
+
+function filterDropdown(dropdownId, searchTerm) {
+    const dropdown = document.getElementById(dropdownId);
+    const options = dropdown.querySelectorAll('.dropdown-option');
+    searchTerm = searchTerm.toLowerCase();
+    
+    options.forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        opt.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+    });
+}
+
+function updateDropdownOptions(dropdownId, options, onSelect) {
+    const dropdown = document.getElementById(dropdownId);
+    const optionsContainer = dropdown.querySelector('.dropdown-options');
+    const trigger = dropdown.querySelector('.dropdown-trigger');
+    const textSpan = trigger.querySelector('.dropdown-text');
+    
+    optionsContainer.innerHTML = '';
+    
+    if (options.length === 0) {
+        optionsContainer.innerHTML = '<div class="dropdown-option" style="color: rgba(255,255,255,0.5); cursor: default;">Seçenek yok</div>';
+        return;
+    }
+    
+    options.forEach((opt, index) => {
+        const div = document.createElement('div');
+        div.className = 'dropdown-option';
+        div.innerHTML = opt.label || opt.text || opt;
+        div.onclick = function() {
+            const value = opt.value !== undefined ? opt.value : (opt.link || opt);
+            const text = opt.label || opt.text || opt;
+            textSpan.textContent = text;
+            
+            // Update hidden select
+            const hiddenSelect = dropdown.closest('.mb-2').querySelector('.hidden-select');
+            if (hiddenSelect) {
+                hiddenSelect.value = value;
+                hiddenSelect.dispatchEvent(new Event('change'));
+            }
+            
+            // Close dropdown
+            const menu = dropdown.querySelector('.dropdown-menu');
+            menu.classList.remove('show');
+            trigger.classList.remove('active');
+            
+            // Run callback
+            if (onSelect) onSelect(value);
+        };
+        optionsContainer.appendChild(div);
+    });
+}
+
+function fetchSharers(silent = false) {
+    const postSelect = document.getElementById("postSelect");
+    if (!postSelect) return;
+    
+    const dropdownText = document.querySelector('#postDropdown .dropdown-text');
+    if (dropdownText && dropdownText.textContent === "Paylaşımlar yükleniyor...") {
+        if (!silent) alert("Paylaşımlar henüz yükleniyor, lütfen bekleyin.");
+        return;
+    }
+
+    const posts = window.allFetchedPosts || [];
+    const sharers = new Set();
+    
+    posts.forEach(p => {
+        const sender = p.username;
+        if (sender) {
+            sharers.add(sender);
+        }
+    });
+
+    const textarea = document.getElementById("grup_uye");
+
+    if (sharers.size === 0) {
+        if (!silent) alert("Seçili tarihte grupta paylaşım yapan kimse bulunamadı.");
+        if (textarea) {
+            textarea.value = "";
+            if (window.updateUserCount) window.updateUserCount();
+        }
+        return;
+    }
+
+    if (textarea) {
+        textarea.value = Array.from(sharers).join("\n");
+        if (window.updateUserCount) {
+            window.updateUserCount();
+        }
+    }
+}
+
+function handleSharersCheckbox() {
+    const isChecked = document.getElementById("onlySharersCheck")?.checked;
+    if (isChecked) {
+        fetchSharers();
+    } else {
+        const textarea = document.getElementById("grup_uye");
+        if (textarea && window.fullGroupMembers && window.fullGroupMembers.length > 0) {
+            textarea.value = window.fullGroupMembers.join("\n");
+            if (window.updateUserCount) window.updateUserCount();
+        }
+    }
+}
+
+// Global scope bindings
+window.fullGroupMembers = [];
+window.toggleDropdown = toggleDropdown;
+window.selectDropdownOption = selectDropdownOption;
+window.filterDropdown = filterDropdown;
+window.updateDropdownOptions = updateDropdownOptions;
+window.fetchSharers = fetchSharers;
+window.handleSharersCheckbox = handleSharersCheckbox;
