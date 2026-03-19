@@ -36,6 +36,7 @@ echo "Izinler ayarlaniyor..."
 chmod -R 755 .
 chmod -R 777 data/ logs/ 2>/dev/null
 chmod 600 *.json 2>/dev/null
+chmod 644 *.db 2>/dev/null
 
 # .env dosyasi kontrolu
 if [ ! -f ".env" ]; then
