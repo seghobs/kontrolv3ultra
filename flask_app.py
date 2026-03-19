@@ -12,6 +12,10 @@ logging.basicConfig(
 
 app = create_app()
 
+from app_core.storage import get_db_connection
+with get_db_connection():
+    pass
+
 from app_core.automation import start_automation
 start_automation()
 
