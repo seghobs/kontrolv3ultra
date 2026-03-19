@@ -23,7 +23,9 @@ from app_core.storage import (
     soft_delete_token,
     restore_token,
 )
-from app_core.token_service import clear_logout_state, relogin_saved_user
+from app_core.token_service import clear_logout_state, relogin_saved_user, get_working_active_token
+from app_core.instagram_api import fetch_group_threads, fetch_own_thread_items, delete_thread_item
+from app_core.automation import load_automations, save_automations
 from app_core.validators import is_valid_android_id, is_valid_device_id, is_valid_post_link, is_valid_username
 
 logger = logging.getLogger(__name__)
@@ -594,3 +596,118 @@ def export_exemptions_route():
     list_export = [{"post_link": k, "usernames": v} for k, v in exemptions.items()]
     body = json.dumps({"exemptions": list_export}, ensure_ascii=False, indent=2)
     return Response(body, mimetype="application/json", headers={"Content-Disposition": "attachment; filename=exemptions.json"})
+
+
+@admin_bp.route("/get_groups", methods=["GET"])
+def get_groups_route():
+    auth_error = _require_admin()
+    if auth_error:
+        return auth_error
+        
+    token_record = get_working_active_token()
+    if not token_record:
+        return api_response(False, "ERROR", "Aktif token bulunamadi.")
+        
+    res = fetch_group_threads(token_record)
+    if not res.get("ok"):
+        return api_response(False, "ERROR", "Gruplar cekilemedi.")
+        
+    return api_response(True, "OK", "Gruplar cekildi.", extra={"groups": res.get("groups", [])})
+
+
+@admin_bp.route("/get_automations", methods=["GET"])
+def get_automations_route():
+    auth_error = _require_admin()
+    if auth_error:
+        return auth_error
+        
+    automations = load_automations()
+    return api_response(True, "OK", "Otomasyonlar", extra={"automations": automations})
+
+
+@admin_bp.route("/save_automation", methods=["POST"])
+def save_automation_route():
+    auth_error = _require_admin()
+    if auth_error:
+        return auth_error
+        
+    data = request.get_json() or {}
+    thread_id = data.get("thread_id")
+    time_str = data.get("time")
+    is_active = data.get("is_active", False)
+    group_name = data.get("group_name", "Bilinmeyen Grup")
+    notify_username = data.get("notify_username", "seghob").strip().lstrip("@")
+    
+    if not thread_id or not time_str:
+        return api_response(False, "ERROR", "Thread ID ve zaman zorunlu.")
+        
+    automations = load_automations()
+    automations[str(thread_id)] = {
+        "time": time_str,
+        "is_active": is_active,
+        "group_name": group_name,
+        "notify_username": notify_username,
+    }
+    save_automations(automations)
+    return api_response(True, "OK", "Otomasyon ayarlari kaydedildi.")
+
+
+@admin_bp.route("/trigger_automation", methods=["POST"])
+def trigger_automation_route():
+    auth_error = _require_admin()
+    if auth_error:
+        return auth_error
+
+    data = request.get_json() or {}
+    thread_id = data.get("thread_id")
+    if not thread_id:
+        return api_response(False, "ERROR", "Thread ID zorunlu.")
+
+    import threading
+    from app_core.automation import run_automation_for_thread
+    t = threading.Thread(target=run_automation_for_thread, args=(str(thread_id),), daemon=True)
+    t.start()
+    return api_response(True, "OK", f"Otomasyon tetiklendi (arka planda calisuyor): {thread_id}")
+@admin_bp.route("/unsend_messages", methods=["POST"])
+def unsend_messages_route():
+    auth_error = _require_admin()
+    if auth_error:
+        return auth_error
+
+    data = request.get_json() or {}
+    thread_id = data.get("thread_id")
+    if not thread_id:
+        return api_response(False, "ERROR", "Thread ID zorunlu.")
+
+    token_record = get_working_active_token()
+    if not token_record:
+        return api_response(False, "ERROR", "Aktif token bulunamadi.")
+
+    # Bot'un kendi mesajlarını çek
+    items_res = fetch_own_thread_items(token_record, thread_id, limit=30)
+    if not items_res.get("ok"):
+        return api_response(False, "ERROR", f"Mesajlar cekilemedi: {items_res.get('error')}")
+
+    items = items_res.get("items", [])
+    if not items:
+        return api_response(True, "OK", "Geri alinacak mesaj bulunamadi.", extra={"deleted": 0})
+
+    import time
+    deleted = 0
+    failed = 0
+    for item in items:
+        item_id = item.get("item_id")
+        if not item_id:
+            continue
+        res = delete_thread_item(token_record, thread_id, item_id)
+        if res.get("ok"):
+            deleted += 1
+        else:
+            failed += 1
+        time.sleep(0.8)  # rate limit
+
+    return api_response(
+        True, "OK",
+        f"{deleted} mesaj geri alindi, {failed} basarisiz.",
+        extra={"deleted": deleted, "failed": failed}
+    )

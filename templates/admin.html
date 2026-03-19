@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Cache Devre Disi: Chrome, Safari, Firefox hicbir sayfayi hatirlamamali -->
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Admin Panel - Çoklu Token Yönetimi</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -831,6 +835,33 @@
             </div>
         </div>
 
+        <div class="automation-section" id="automationSection" style="background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 16px; padding: 25px; margin-bottom: 20px; border: 1px solid rgba(139, 92, 246, 0.4); box-shadow: 0 0 15px rgba(139, 92, 246, 0.1);">
+            <div class="section-header" id="automationHeader" onclick="toggleAutomationPanel()" style="cursor: pointer;">
+                <h2 style="color: #fff;"><i class="fas fa-robot text-purple-400"></i> Grup Kontrol Otomasyonu (Beta)</h2>
+                <i class="fas fa-chevron-down chevron-icon" id="automationChevron"></i>
+            </div>
+            <div id="automationBody" class="section-body collapsed">
+                <p style="color: rgba(255,255,255,0.7); margin-bottom: 15px; font-size: 14px;">
+                    <i class="fas fa-info-circle"></i> Bu özellik, grupları belirlediğiniz "GMT+3" saatinde otomatik tarar, dünün/bugünün gönderilerine eksikleri çıkarır ve doğrudan <b>gruba yazar</b>. Bu riskli bir işlemdir (SPAM filtresi tetiklenebilir). Lütfen dikkatli kullanın!
+                </p>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-primary" onclick="loadAutomationGroups()" id="loadAutomationBtn">
+                        <i class="fas fa-sync-alt me-1"></i> Grupları Listele
+                    </button>
+                    <span id="automationStatus" style="color: var(--success-color); display: none; align-items: center; gap: 6px;"><i class="fas fa-check-circle"></i> Yüklendi</span>
+                </div>
+                
+                <div class="loading" id="automationLoading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p style="margin-top: 5px;">Instagram'dan gruplar çekiliyor, lütfen bekleyin...</p>
+                </div>
+                
+                <div id="automationList" class="exemption-grid">
+                    <!-- Gruplar buraya render edilecek -->
+                </div>
+            </div>
+        </div>
+
         <div class="audit-section" id="auditSection" onclick="toggleAuditPanel()" style="background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 16px; padding: 25px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
             <div class="section-header" id="auditHeader">
                 <h2 style="color: #fff;"><i class="fas fa-history"></i> Son İşlemler (Audit Log)</h2>
@@ -953,6 +984,6 @@
         </div>
     </div>
     
-    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/admin.js') }}?v={{ range(1, 99999) | random }}"></script>
 </body>
 </html>

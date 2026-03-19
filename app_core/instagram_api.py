@@ -622,3 +622,91 @@ def fetch_group_media(token_record, thread_id, target_date=None):
     except Exception as e:
         logger.error("Grup paylasimlari cekme hatasi: %s", e)
         return {"ok": False, "error": str(e)}
+
+
+def fetch_own_thread_items(token_record, thread_id, limit=20):
+    """Thread'deki son mesajları çeker, yalnızca bot'un attıklarını döndürür."""
+    token = token_record.get("token", "")
+    user_agent = token_record.get("user_agent", "")
+    android_id = token_record.get("android_id_yeni", "")
+    device_id = token_record.get("device_id", "")
+
+    my_user_id = extract_user_id_from_token(token)
+    if not my_user_id:
+        return {"ok": False, "error": "Token'dan user_id alinamadi"}
+
+    headers = {
+        "authorization": token,
+        "user-agent": user_agent,
+        "x-ig-app-id": IG_APP_ID,
+        "x-ig-android-id": f"android-{android_id}",
+        "x-ig-device-id": device_id,
+        "x-ig-capabilities": "3brTv10=",
+        "x-ig-connection-type": "WIFI",
+        "accept-language": "tr-TR, en-US",
+    }
+
+    try:
+        resp = requests.get(
+            f"https://i.instagram.com/api/v1/direct_v2/threads/{thread_id}/",
+            headers=headers,
+            params={"limit": limit},
+            timeout=15,
+        )
+        if resp.status_code != 200:
+            return {"ok": False, "error": f"HTTP {resp.status_code}"}
+
+        data = resp.json()
+        items = data.get("thread", {}).get("items", [])
+
+        own_items = []
+        for item in items:
+            sender_id = str(item.get("user_id", ""))
+            if sender_id == str(my_user_id):
+                item_id = item.get("item_id")
+                item_type = item.get("item_type", "")
+                text = ""
+                if item_type == "text":
+                    text = item.get("text", "")
+                own_items.append({
+                    "item_id": item_id,
+                    "item_type": item_type,
+                    "text": text,
+                })
+
+        return {"ok": True, "items": own_items, "my_user_id": my_user_id}
+    except Exception as e:
+        logger.error("Thread item cekme hatasi: %s", e)
+        return {"ok": False, "error": str(e)}
+
+
+def delete_thread_item(token_record, thread_id, item_id):
+    """Bir DM mesajını geri alır (siler)."""
+    token = token_record.get("token", "")
+    user_agent = token_record.get("user_agent", "")
+    android_id = token_record.get("android_id_yeni", "")
+    device_id = token_record.get("device_id", "")
+
+    headers = {
+        "authorization": token,
+        "user-agent": user_agent,
+        "x-ig-app-id": IG_APP_ID,
+        "x-ig-android-id": f"android-{android_id}",
+        "x-ig-device-id": device_id,
+        "x-ig-capabilities": "3brTv10=",
+        "content-type": "application/x-www-form-urlencoded",
+    }
+
+    try:
+        resp = requests.post(
+            f"https://i.instagram.com/api/v1/direct_v2/threads/{thread_id}/items/{item_id}/delete/",
+            headers=headers,
+            timeout=10,
+        )
+        ok = resp.status_code == 200
+        if not ok:
+            logger.warning("Mesaj silinemedi item=%s status=%s", item_id, resp.status_code)
+        return {"ok": ok, "status": resp.status_code}
+    except Exception as e:
+        logger.error("Mesaj silme hatasi: %s", e)
+        return {"ok": False, "error": str(e)}

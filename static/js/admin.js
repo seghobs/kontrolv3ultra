@@ -926,6 +926,169 @@ document.getElementById("addExemptionForm").addEventListener("submit", async (ev
     }
 });
 
+// ============================================
+// AUTOMATION MANAGEMENT (BETA)
+// ============================================
+
+function toggleAutomationPanel() {
+    const body = document.getElementById('automationBody');
+    const chevron = document.getElementById('automationChevron');
+    if (!body || !chevron) return;
+    body.classList.toggle('collapsed');
+    chevron.classList.toggle('rotated');
+}
+
+async function loadAutomationGroups() {
+    const loading = document.getElementById('automationLoading');
+    const btn = document.getElementById('loadAutomationBtn');
+    const status = document.getElementById('automationStatus');
+    const list = document.getElementById('automationList');
+    
+    if (!loading || !btn || !status || !list) return;
+
+    loading.style.display = 'block';
+    btn.disabled = true;
+    list.innerHTML = '';
+    
+    try {
+        const autoRes = await fetch('/admin/get_automations');
+        const autoData = await autoRes.json();
+        const savedAutos = autoData.success ? (autoData.automations || {}) : {};
+
+        const groupRes = await fetch('/admin/get_groups');
+        const groupData = await groupRes.json();
+        
+        if (groupData.success) {
+            const groups = groupData.groups || [];
+            if (groups.length === 0) {
+                list.innerHTML = `<div style="color:#aaa; text-align:center; padding: 20px;">Sistemde çekilecek grup bulunamadı.</div>`;
+            } else {
+                groups.forEach(g => {
+                    const threadId = g.id;
+                    const groupName = g.name || 'İsimsiz Grup';
+                    const saved = savedAutos[threadId] || {};
+                    const isChecked = saved.is_active ? 'checked' : '';
+                    const timeValue = saved.time || '23:59';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'exemption-card';
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <strong style="color:var(--text-primary); font-size:15px;"><i class="fas fa-users me-2 text-purple-400"></i> ${escapeHtml(groupName)}</strong>
+                            <div class="toggle-switch" style="transform: scale(0.85);">
+                                <input type="checkbox" id="auto_toggle_${threadId}" ${isChecked}>
+                                <span class="slider" style="background:var(--accent-primary);"></span>
+                            </div>
+                        </div>
+                        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; word-break:break-all;">Üye: ${g.member_count || '?'} kişi</div>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+                            <label style="color:rgba(255,255,255,0.6); font-size:13px;"><i class="fas fa-clock me-1"></i> GMT+3 Saat:</label>
+                            <input type="time" id="auto_time_${threadId}" value="${timeValue}" style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:6px 12px; border-radius:8px;">
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <label style="color:rgba(255,255,255,0.6); font-size:13px;"><i class="fas fa-bell me-1"></i> Bildirim Hesabı:</label>
+                            <input type="text" id="auto_notify_${threadId}" value="${saved.notify_username || 'seghob'}" placeholder="Instagram kullanıcı adı" style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:6px 12px; border-radius:8px; width:150px;">
+                            <button type="button" class="btn btn-sm btn-success" onclick="saveAutomation('${threadId}', '${escapeHtml(groupName)}')">
+                                <i class="fas fa-save me-1"></i> Kaydet
+                            </button>
+                            <button type="button" class="btn btn-sm" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;" onclick="triggerAutomation('${threadId}', '${escapeHtml(groupName)}')">
+                                <i class="fas fa-bolt me-1"></i> Manuel Tetikle
+                            </button>
+                            <button type="button" class="btn btn-sm" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;" onclick="unsendMessages('${threadId}', '${escapeHtml(groupName)}')">
+                                <i class="fas fa-undo me-1"></i> Mesajları Geri Al
+                            </button>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+            }
+        } else {
+            showAlert(groupData.message || 'Gruplar çekilemedi.', 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showAlert('Otomasyon verileri yüklenirken hata oluştu.', 'error');
+    } finally {
+        loading.style.display = 'none';
+        btn.disabled = false;
+        status.style.display = 'inline-flex';
+        setTimeout(() => status.style.display = 'none', 3000);
+    }
+}
+
+async function saveAutomation(threadId, groupName) {
+    const timeInput = document.getElementById(`auto_time_${threadId}`).value;
+    const isActive = document.getElementById(`auto_toggle_${threadId}`).checked;
+    const notifyUsername = (document.getElementById(`auto_notify_${threadId}`) || {}).value || 'seghob';
+    
+    try {
+        const res = await fetch('/admin/save_automation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                thread_id: threadId,
+                time: timeInput,
+                is_active: isActive,
+                group_name: groupName,
+                notify_username: notifyUsername.trim().replace(/^@/, '')
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showAlert(`[${groupName}] otomasyonu ${isActive ? 'aktif ('+timeInput+')' : 'pasif'} olarak kaydedildi!`, 'success');
+        } else {
+            showAlert(data.message || 'Kaydedilemedi.', 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showAlert('Hata olustu.', 'error');
+    }
+}
+
+async function triggerAutomation(threadId, groupName) {
+    if (!confirm(`⚡ [${groupName}] grubu için otomasyonu HEMEN tetiklemek istiyor musunuz?\nBu işlem gruba DM gönderecek!`)) return;
+
+    try {
+        showAlert('Otomasyon tetikleniyor...', 'info');
+        const res = await fetch('/admin/trigger_automation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ thread_id: threadId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showAlert('✅ Otomasyon arka planda çalışıyor. Flask loglarını kontrol edin.', 'success');
+        } else {
+            showAlert(data.message || 'Tetiklenemedi.', 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showAlert('Tetikleme hatası: ' + e.message, 'error');
+    }
+}
+
+async function unsendMessages(threadId, groupName) {
+    if (!confirm(`🗑️ [${groupName}] grubuna atılan BOT mesajlarını geri almak istiyor musunuz?\nSon 30 bot mesajı silinecek.`)) return;
+
+    try {
+        showAlert('Mesajlar geri alınıyor...', 'info');
+        const res = await fetch('/admin/unsend_messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ thread_id: threadId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showAlert(`✅ ${data.message}`, 'success');
+        } else {
+            showAlert(data.message || 'Geri alınamadı.', 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showAlert('Hata: ' + e.message, 'error');
+    }
+}
+
 window.toggleToken = toggleToken;
 window.validateToken = validateToken;
 window.deleteToken = deleteToken;
@@ -940,6 +1103,11 @@ window.toggleTokensListPanel = toggleTokensListPanel;
 window.toggleHiddenTokens = toggleHiddenTokens;
 window.toggleAuditPanel = toggleAuditPanel;
 window.toggleGlobalExemptionPanel = toggleGlobalExemptionPanel;
+window.toggleAutomationPanel = toggleAutomationPanel;
+window.loadAutomationGroups = loadAutomationGroups;
+window.saveAutomation = saveAutomation;
+window.triggerAutomation = triggerAutomation;
+window.unsendMessages = unsendMessages;
 window.closeSuccessModal = closeSuccessModal;
 window.closeReloginFieldsModal = closeReloginFieldsModal;
 window.submitReloginFields = submitReloginFields;
