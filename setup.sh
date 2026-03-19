@@ -7,14 +7,15 @@ echo "========================================="
 echo "Kontrol Projesi Otomatik Kuruluyor..."
 echo "========================================="
 
-# Mevcut mysite klasorunu yedekle
+# Mevcut mysite klasorunu temizle ve yedekle
 if [ -d "mysite" ]; then
-    echo "Eski mysite klasoru yedekleniyor..."
+    echo "Mysite klasoru temizleniyor ve yedekleniyor..."
     mv mysite mysite_backup_$(date +%Y%m%d_%H%M%S) 2>/dev/null
 fi
 
 # Projeyi GitHub'dan indir
 echo "Proje indiriliyor..."
+rm -rf mysite 2>/dev/null
 git clone https://github.com/seghobs/kontrolv3ultra.git mysite
 
 if [ ! -d "mysite" ]; then
