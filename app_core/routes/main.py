@@ -218,7 +218,7 @@ def index():
             links=link_results,
             all_commented=list(tamamlayanlar_genel),
             group=list(grup_uye_kullanicilar),
-            user_missing_posts=user_missing_formatted if len(link_results) > 1 else {},
+            user_missing_posts={},
             check_likes=check_likes)
 
     refresh = request.args.get("refresh") == "1"
