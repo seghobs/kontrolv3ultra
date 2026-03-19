@@ -1,4 +1,4 @@
-# Kontrol v2 Ultra
+# Kontrol v3 Ultra
 
 Instagram yorum kontrol ve token yonetim paneli.
 
@@ -20,13 +20,13 @@ Instagram yorum kontrol ve token yonetim paneli.
 ### Tek Komutla Kurulum (Linux/Bash/PythonAnywhere)
 
 ```bash
-bash -c "$(curl -sL https://raw.githubusercontent.com/seghobs/kontrolv2ultra/main/setup.sh)"
+bash -c "$(curl -sL https://raw.githubusercontent.com/seghobs/kontrolv3ultra/main/setup.sh)"
 ```
 
 ### Manuel Kurulum
 
 ```bash
-git clone https://github.com/seghobs/kontrolv2ultra.git kontrol
+git clone https://github.com/seghobs/kontrolv3ultra.git kontrol
 cd kontrol
 pip install -r requirements.txt
 python flask_app.py
