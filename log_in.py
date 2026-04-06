@@ -330,7 +330,7 @@ def giris_yap(username, password, android_id, user_agent, device_id):
         time.sleep(random.uniform(0.5, 1.5))
     else:
         logger.warning("Token bulunamadi: @%s", username)
-        
+
         error_message = _extract_login_failure_reason(yeni)
         if error_message:
             logger.error("Giriş başarısız nedeni: %s", error_message)
@@ -339,12 +339,23 @@ def giris_yap(username, password, android_id, user_agent, device_id):
                 "LOGIN_FAILED",
                 details={"response": str(yeni)[:500]}
             )
-        
+
         raise LoginError(
             "Token alınamadı. Kullanıcı adı veya şifre hatalı olabilir.",
             "TOKEN_NOT_FOUND",
             details={"response": str(yeni)[:500]}
         )
+
+    # Session state güncelle:
+    # 1) Once HTTP response header'lari (Bloks'ta bos gelir ama normal API'lerde doludur)
+    # 2) Body'den alinan bloks header'lari (asil session degerleri burada olabilir)
+    try:
+        from app_core.session_state import update_session, update_session_from_body
+        update_session(username, response.headers)
+        update_session_from_body(username, yeni)
+        logger.info("Session state login'den guncellendi: @%s", username)
+    except Exception as e:
+        logger.warning("Session state güncelleme hatasi: %s", e)
 
     save_token_data(
         {

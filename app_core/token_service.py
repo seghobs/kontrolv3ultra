@@ -51,6 +51,13 @@ def get_working_active_token(excluded_usernames=None, skip_validation=False):
         if not android_id or not user_agent or not device_id or not token_value:
             continue
 
+        # Session state'i DB'den yükle
+        try:
+            from app_core.session_state import load_from_db
+            load_from_db(username)
+        except Exception:
+            pass
+
         # Validate token before using (cached for 5 minutes to prevent spam)
         if not skip_validation:
             current_time = datetime.now().timestamp()
@@ -103,9 +110,14 @@ def fetch_comments_with_failover(media_id, progress_callback=None, token_record=
         if result.get("rate_limited"):
             return {"rate_limited": True, "usernames": usernames}
 
-        tokens = load_tokens()
-        deactivate_token(tokens, current_username, "Bu hesabin oturumu Instagram'dan cikis yapildi")
-        save_tokens(tokens)
+        status_code = result.get("status")
+        if status_code in [401, 403]:
+            tokens = load_tokens()
+            deactivate_token(tokens, current_username, "Token gecersiz veya cikis yapildi (Auth Hatasi)")
+            save_tokens(tokens)
+        else:
+            logger.warning("Post veya API hatasi (%s). Token yanmadi, ancak islem sonlandiriliyor.", status_code)
+            break
 
         retry_count += 1
         tried_usernames.add(current_username)
@@ -147,9 +159,14 @@ def fetch_likers_with_failover(media_id, progress_callback=None, token_record=No
         if result.get("rate_limited"):
             return {"rate_limited": True, "usernames": usernames}
 
-        tokens = load_tokens()
-        deactivate_token(tokens, current_username, "Bu hesabin oturumu Instagram'dan cikis yapildi")
-        save_tokens(tokens)
+        status_code = result.get("status")
+        if status_code in [401, 403]:
+            tokens = load_tokens()
+            deactivate_token(tokens, current_username, "Token gecersiz veya cikis yapildi (Auth Hatasi)")
+            save_tokens(tokens)
+        else:
+            logger.warning("Post veya API hatasi (%s). Token yanmadi, ancak islem sonlandiriliyor.", status_code)
+            break
 
         retry_count += 1
         tried_usernames.add(current_username)

@@ -137,6 +137,10 @@ function loadGroupMembers(threadIdFromDropdown) {
             }
             if (dropdownText) dropdownText.textContent = "-- Instagram Grubu Seç --";
             showTokenErrorModal("Üyeler yüklenemedi: " + err.message);
+        })
+        .finally(() => {
+            window.isMembersLoading = false;
+            checkAndEnableToggles();
         });
     
     // Paylaşımları yükle - threadId ile birlikte
@@ -144,11 +148,23 @@ function loadGroupMembers(threadIdFromDropdown) {
     const filterWrapper = document.getElementById("sharersFilterWrapper");
     if (filterWrapper) {
         filterWrapper.style.display = "flex";
+        filterWrapper.style.opacity = "0.5";
+        filterWrapper.style.pointerEvents = "none";
+        const c1 = document.getElementById("onlySharersCheck");
+        if(c1) c1.disabled = true;
     }
     const likesFilterWrapper = document.getElementById("lowLikesFilterWrapper");
     if (likesFilterWrapper) {
         likesFilterWrapper.style.display = "flex";
+        likesFilterWrapper.style.opacity = "0.5";
+        likesFilterWrapper.style.pointerEvents = "none";
+        const c2 = document.getElementById("lowLikesCheck");
+        if(c2) c2.disabled = true;
     }
+    
+    window.isMembersLoading = true;
+    window.isPostsLoading = true;
+    
     loadGroupPosts(threadId);
 }
 
@@ -256,6 +272,18 @@ function loadGroupPosts(threadIdFromMembers) {
         return;
     }
     
+    // Yüklenme başladı, butonları deaktif et
+    window.isPostsLoading = true;
+    const fw = document.getElementById("sharersFilterWrapper");
+    if(fw) { fw.style.opacity = "0.5"; fw.style.pointerEvents = "none"; }
+    const c1 = document.getElementById("onlySharersCheck");
+    if(c1) c1.disabled = true;
+    
+    const lw = document.getElementById("lowLikesFilterWrapper");
+    if(lw) { lw.style.opacity = "0.5"; lw.style.pointerEvents = "none"; }
+    const c2 = document.getElementById("lowLikesCheck");
+    if(c2) c2.disabled = true;
+    
     if (dropdownText) {
         dropdownText.textContent = "Paylaşımlar yükleniyor...";
     }
@@ -295,7 +323,31 @@ function loadGroupPosts(threadIdFromMembers) {
                 dropdownText.textContent = "-- Paylaşım Seç --";
             }
             dropdownOptions.innerHTML = '<div class="dropdown-option" style="color: rgba(255,255,255,0.5);">Hata oluştu</div>';
+        })
+        .finally(() => {
+            window.isPostsLoading = false;
+            checkAndEnableToggles();
         });
+}
+
+function checkAndEnableToggles() {
+    if (window.isMembersLoading || window.isPostsLoading) return;
+    
+    const filterWrapper = document.getElementById("sharersFilterWrapper");
+    if (filterWrapper) {
+        filterWrapper.style.opacity = "1";
+        filterWrapper.style.pointerEvents = "auto";
+        const c1 = document.getElementById("onlySharersCheck");
+        if(c1) c1.disabled = false;
+    }
+    
+    const likesFilterWrapper = document.getElementById("lowLikesFilterWrapper");
+    if (likesFilterWrapper) {
+        likesFilterWrapper.style.opacity = "1";
+        likesFilterWrapper.style.pointerEvents = "auto";
+        const c2 = document.getElementById("lowLikesCheck");
+        if(c2) c2.disabled = false;
+    }
 }
 
 function handleLowLikesCheckbox() {

@@ -61,11 +61,10 @@ def _get_user_id_by_username(username, token_record):
     """Instagram kullanıcı adından user_id alır."""
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
-        "x-ig-app-id": IG_APP_ID,
-    }
+    android_id = token_record.get("android_id_yeni", "")
+    device_id = token_record.get("device_id", "")
+    from app_core.instagram_api import build_auth_headers
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
     try:
         if _CURL_AVAILABLE:
             resp = curl_requests.get(
@@ -80,6 +79,8 @@ def _get_user_id_by_username(username, token_record):
                 headers=headers,
                 timeout=10,
             )
+        from app_core.instagram_api import _update_session_from_response
+        _update_session_from_response(token_record.get("username", ""), resp)
         data = resp.json()
         user_id = data.get("data", {}).get("user", {}).get("id")
         return str(user_id) if user_id else None
@@ -92,12 +93,12 @@ def _send_dm_to_user(recipient_user_id, text, token_record):
     """Belirli bir kullanıcıya (thread yeriıne user ID ile) DM gönderir."""
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
-        "x-ig-app-id": IG_APP_ID,
-        "content-type": "application/x-www-form-urlencoded",
-    }
+    android_id = token_record.get("android_id_yeni", "")
+    device_id = token_record.get("device_id", "")
+    username = token_record.get("username", "")
+    from app_core.instagram_api import build_auth_headers
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
+    headers["content-type"] = "application/x-www-form-urlencoded"
     payload = {
         "text": text,
         "recipient_users": f"[[{recipient_user_id}]]",
@@ -120,6 +121,8 @@ def _send_dm_to_user(recipient_user_id, text, token_record):
                 data=payload,
                 timeout=15,
             )
+        from app_core.instagram_api import _update_session_from_response
+        _update_session_from_response(token_record.get("username", ""), resp)
         logger.info("Bildirim DM sonucu user=%s status=%s", recipient_user_id, resp.status_code)
         return resp.status_code == 200
     except Exception as e:
@@ -130,12 +133,12 @@ def _send_dm_to_user(recipient_user_id, text, token_record):
 def _send_dm(thread_id, text, token_record):
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
-        "x-ig-app-id": IG_APP_ID,
-        "content-type": "application/x-www-form-urlencoded",
-    }
+    android_id = token_record.get("android_id_yeni", "")
+    device_id = token_record.get("device_id", "")
+    username = token_record.get("username", "")
+    from app_core.instagram_api import build_auth_headers
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
+    headers["content-type"] = "application/x-www-form-urlencoded"
     payload = {
         "text": text,
         "thread_ids": f"[{thread_id}]",
@@ -158,6 +161,8 @@ def _send_dm(thread_id, text, token_record):
                 data=payload,
                 timeout=15,
             )
+        from app_core.instagram_api import _update_session_from_response
+        _update_session_from_response(token_record.get("username", ""), resp)
         logger.info("DM sonucu thread=%s status=%s", thread_id, resp.status_code)
         return resp.status_code == 200
     except Exception as e:
@@ -168,11 +173,11 @@ def _send_dm(thread_id, text, token_record):
 def _fetch_comment_usernames(media_id, token_record):
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
-        "x-ig-app-id": IG_APP_ID,
-    }
+    android_id = token_record.get("android_id_yeni", "")
+    device_id = token_record.get("device_id", "")
+    username = token_record.get("username", "")
+    from app_core.instagram_api import build_auth_headers
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
     try:
         if _CURL_AVAILABLE:
             resp = curl_requests.get(
@@ -187,6 +192,8 @@ def _fetch_comment_usernames(media_id, token_record):
                 headers=headers,
                 timeout=10,
             )
+        from app_core.instagram_api import _update_session_from_response
+        _update_session_from_response(token_record.get("username", ""), resp)
         data = resp.json()
         users = set()
         for c in data.get("comments", []):
@@ -206,11 +213,11 @@ def _fetch_comment_details(media_id, token_record):
     """Yorumları çeker ve (kullanıcı seti, yorum_sayısı, yorumlar_acik_mi) döndürür."""
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
-        "x-ig-app-id": IG_APP_ID,
-    }
+    android_id = token_record.get("android_id_yeni", "")
+    device_id = token_record.get("device_id", "")
+    username = token_record.get("username", "")
+    from app_core.instagram_api import build_auth_headers
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
     try:
         if _CURL_AVAILABLE:
             resp = curl_requests.get(
@@ -225,6 +232,8 @@ def _fetch_comment_details(media_id, token_record):
                 headers=headers,
                 timeout=10,
             )
+        from app_core.instagram_api import _update_session_from_response
+        _update_session_from_response(token_record.get("username", ""), resp)
         comments_disabled = False
         comment_count = 0
         users = set()

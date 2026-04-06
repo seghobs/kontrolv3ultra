@@ -46,11 +46,14 @@ document.getElementById("loginForm").addEventListener("submit", async (event) =>
             return;
         }
 
+        if (data.message) {
+            throw new Error(data.message);
+        }
         throw new Error("Token alinamadi");
     } catch (_error) {
         loadingMessage.style.display = "none";
         errorMessage.style.display = "block";
-        document.getElementById("errorText").textContent = "Giris basarisiz! Bilgileri kontrol edin.";
+        document.getElementById("errorText").textContent = _error.message || "Giris basarisiz! Bilgileri kontrol edin.";
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Giris Yap ve Token Al';
     }

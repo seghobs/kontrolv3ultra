@@ -974,13 +974,13 @@ async function loadAutomationGroups() {
                     card.className = 'exemption-card';
                     card.innerHTML = `
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                            <strong style="color:var(--text-primary); font-size:15px;"><i class="fas fa-users me-2 text-purple-400"></i> ${escapeHtml(groupName)}</strong>
+                            <strong style="color:#f0f0f0; font-size:15px;"><i class="fas fa-users me-2" style="color:#a78bfa;"></i> ${escapeHtml(groupName)}</strong>
                             <div class="toggle-switch" style="transform: scale(0.85);">
                                 <input type="checkbox" id="auto_toggle_${threadId}" ${isChecked}>
                                 <span class="slider" style="background:var(--accent-primary);"></span>
                             </div>
                         </div>
-                        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; word-break:break-all;">Üye: ${g.member_count || '?'} kişi</div>
+                        <div style="font-size:12px; color:#a0aec0; margin-bottom:12px; word-break:break-all;">Üye: ${g.member_count || '?'} kişi</div>
                         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
                             <label style="color:rgba(255,255,255,0.6); font-size:13px;"><i class="fas fa-clock me-1"></i> GMT+3 Saat:</label>
                             <input type="time" id="auto_time_${threadId}" value="${timeValue}" style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:6px 12px; border-radius:8px;">

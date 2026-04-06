@@ -1,6 +1,20 @@
 import logging
-
+import os
+import time
+import pytz
+from datetime import datetime
 import flask.cli
+
+# Tumuyle GMT+3 (Turkiye) saat dilimi kullanmasi icin zorlama
+os.environ['TZ'] = 'Europe/Istanbul'
+if hasattr(time, 'tzset'):
+    time.tzset()
+
+# Log basliklarinin da GMT+3'e donusmesi icin converter degisimi
+def gmt3_time(*args):
+    return datetime.now(pytz.timezone('Europe/Istanbul')).timetuple()
+
+logging.Formatter.converter = gmt3_time
 
 from app_core import create_app
 

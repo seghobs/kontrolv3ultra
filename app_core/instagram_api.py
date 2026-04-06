@@ -13,6 +13,7 @@ MAX_COMMENT_PAGES = 50
 
 def get_post_sender(media_id, token_record):
     """Verilen media_id'nin göndericisini (owner) bulur."""
+    username = _get_username(token_record)
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
     android_id = token_record.get("android_id_yeni", "")
@@ -25,12 +26,8 @@ def get_post_sender(media_id, token_record):
     if not user_id:
         return None
     
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
-        "x-ig-app-id": IG_APP_ID,
-        "x-ig-android-id": f"android-{android_id}",
-        "x-ig-device-id": device_id,
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
+    headers.update({
         "x-ig-app-locale": "tr_TR",
         "x-ig-device-locale": "tr_TR",
         "x-ig-mapped-locale": "tr_TR",
@@ -38,7 +35,7 @@ def get_post_sender(media_id, token_record):
         "x-ig-connection-type": "WIFI",
         "x-fb-connection-type": "WIFI",
         "accept-language": "tr-TR, en-US",
-    }
+    })
     
     # Önce /media/{id}/info/ dene
     try:
@@ -47,6 +44,7 @@ def get_post_sender(media_id, token_record):
             headers=headers,
             timeout=10,
         )
+        _update_session_from_response(username, response)
         if response.status_code == 200:
             data = response.json()
             items = data.get("items", [])
@@ -64,6 +62,7 @@ def get_post_sender(media_id, token_record):
             headers=headers,
             timeout=10,
         )
+        _update_session_from_response(username, response)
         if response.status_code == 200:
             data = response.json()
             items = data.get("items", [])
@@ -81,6 +80,7 @@ def get_post_sender(media_id, token_record):
             headers=headers,
             timeout=10,
         )
+        _update_session_from_response(username, response)
         if response.status_code == 200:
             data = response.json()
             comments = data.get("comments", [])
@@ -112,7 +112,10 @@ def extract_user_id_from_token(token):
         return None
 
 
-def build_auth_headers(token, user_agent, android_id, device_id):
+def build_auth_headers(token, user_agent, android_id, device_id, username=None):
+    from app_core.session_state import get_auth_headers
+    if username:
+        return get_auth_headers(username, token, user_agent, android_id, device_id)
     return {
         "authorization": token,
         "user-agent": user_agent,
@@ -120,6 +123,37 @@ def build_auth_headers(token, user_agent, android_id, device_id):
         "x-ig-android-id": f"android-{android_id}",
         "x-ig-device-id": device_id,
     }
+
+
+def _update_session_from_response(username, response):
+    """
+    Response'dan session state'i gunceller.
+    Iki kaynagi kontrol eder:
+      1. HTTP response header'lari (normal API endpoint'leri)
+      2. Response body icindeki nested 'headers' JSON string'i
+         (Bloks endpoint'leri gercek degerleri buraya gomor)
+    """
+    if not username or not response:
+        return
+    try:
+        from app_core.session_state import update_session, update_session_from_body
+        # 1) HTTP response header'lari
+        update_session(username, response.headers)
+        # 2) Body icindeki gizli header'lar (JSON parse edilebiliyorsa)
+        try:
+            body = response.json()
+            if isinstance(body, dict):
+                update_session_from_body(username, body)
+        except Exception:
+            pass  # JSON degilse veya parse hatasi varsa sessizce gec
+    except Exception:
+        pass
+
+
+
+def _get_username(token_record):
+    """Token record'dan username'i çıkarır."""
+    return token_record.get("username", "") if token_record else ""
 
 
 def fetch_current_user(token, user_agent, android_id, device_id, timeout=5):
@@ -133,6 +167,7 @@ def fetch_current_user(token, user_agent, android_id, device_id, timeout=5):
 
 
 def validate_token(token_record):
+    username = _get_username(token_record)
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
     android_id = token_record.get("android_id_yeni", "")
@@ -145,83 +180,78 @@ def validate_token(token_record):
     if not user_id:
         return True
     
-    headers = {
-        "accept-language": "tr-TR, en-US",
-        "authorization": token,
-        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "ig-intended-user-id": user_id,
-        "ig-u-ds-user-id": user_id,
-        "priority": "u=0",
-        "x-bloks-is-layout-rtl": "false",
-        "x-bloks-prism-button-version": "INDIGO_PRIMARY_BORDERED_SECONDARY",
-        "x-bloks-prism-colors-enabled": "true",
-        "x-bloks-prism-extended-palette-gray": "false",
-        "x-bloks-prism-extended-palette-indigo": "true",
-        "x-bloks-prism-extended-palette-polish-enabled": "false",
-        "x-bloks-prism-extended-palette-red": "true",
-        "x-bloks-prism-extended-palette-rest-of-colors": "true",
-        "x-bloks-prism-font-enabled": "true",
-        "x-fb-client-ip": "True",
-        "x-fb-connection-type": "WIFI",
-        "x-fb-friendly-name": "IgApi: user_info_stream_by_id",
-        "x-fb-network-properties": "Wifi;Validated;",
-        "x-fb-server-cluster": "True",
-        "x-ig-accept-hint": "image-grid",
-        "x-ig-android-id": f"android-{android_id}",
-        "x-ig-app-id": IG_APP_ID,
-        "x-ig-app-locale": "tr_TR",
-        "x-ig-capabilities": "3brTv10=",
-        "x-ig-connection-type": "WIFI",
-        "x-ig-device-id": device_id,
-        "x-ig-device-languages": '{"system_languages":"tr-TR"}',
-        "x-ig-device-locale": "tr_TR",
-        "x-ig-is-foldable": "false",
-        "x-ig-mapped-locale": "tr_TR",
-        "user-agent": user_agent,
-        "x-fb-http-engine": "Tigon/MNS/TCP",
-    }
-    
-    data = {
-        "entry_point": "self_profile",
-        "from_module": "self_profile",
-        "_uuid": device_id,
-    }
-    
+    # Birincil: GraphQL profile timeline (doğal görünür, inbox kadar sıklıkla kullanılmaz)
     try:
+        from urllib.parse import quote as _urlquote
+        headers = {
+            "authorization": token,
+            "user-agent": user_agent,
+            "x-ig-app-id": IG_APP_ID,
+            "x-ig-android-id": f"android-{android_id}",
+            "x-ig-device-id": device_id,
+            "x-fb-friendly-name": "IGProfileTimelineQuery",
+            "x-ig-bloks-serialize-payload": "true",
+            "x-ig-validate-null-in-legacy-dict": "true",
+            "content-type": "application/x-www-form-urlencoded",
+        }
+        variables = json.dumps({"user_id": user_id, "count": 1}, separators=(",", ":"))
+        data = (
+            "method=post&pretty=false&format=json&server_timestamps=true"
+            "&locale=user&purpose=refresh"
+            "&fb_api_req_friendly_name=IGProfileTimelineQuery"
+            "&client_doc_id=56030350817877850088506871007"
+            "&enable_canonical_naming=true"
+            f"&variables={_urlquote(variables)}"
+        )
         response = requests.post(
-            f"https://i.instagram.com/api/v1/users/{user_id}/info_stream/",
+            "https://i.instagram.com/graphql/query",
             headers=headers,
             data=data,
             timeout=10,
         )
+        _update_session_from_response(username, response)
         if response.status_code == 200:
-            logger.info("Token dogrulandi (info_stream): %s", user_id)
+            logger.info("Token dogrulandi (graphql): %s", device_id[:8])
             return True
         if response.status_code in [401, 403]:
-            logger.warning("Token reddedildi: %d", response.status_code)
+            logger.warning("Token reddedildi (graphql): %d", response.status_code)
             return False
-        logger.warning("Token dogrulama basarisiz: %d", response.status_code)
     except Exception as error:
-        logger.warning("Token dogrulama hatasi: %s", error)
+        logger.warning("Token dogrulama hatasi (graphql): %s", error)
+    
+    # Fallback: inbox
+    try:
+        headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
+        response = requests.get(
+            "https://i.instagram.com/api/v1/direct_v2/inbox/",
+            headers=headers,
+            timeout=10,
+        )
+        _update_session_from_response(username, response)
+        if response.status_code == 200:
+            logger.info("Token dogrulandi (inbox fallback): %s", device_id[:8])
+            return True
+        if response.status_code in [401, 403]:
+            logger.warning("Token reddedildi (inbox fallback): %d", response.status_code)
+            return False
+    except Exception as error:
+        logger.warning("Token dogrulama hatasi (inbox fallback): %s", error)
     
     return True
 
 
 def fetch_comment_usernames(media_id, token_record, min_id=None, progress_callback=None):
+    username = _get_username(token_record)
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
     android_id = token_record.get("android_id_yeni", "")
     device_id = token_record.get("device_id", "")
 
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
+    headers.update({
         "x-ig-app-locale": "tr_TR",
         "x-ig-device-locale": "tr_TR",
         "x-ig-mapped-locale": "tr_TR",
-        "x-ig-android-id": f"android-{android_id}",
-        "x-ig-device-id": device_id,
-        "x-ig-app-id": IG_APP_ID,
         "x-ig-capabilities": "3brTv10=",
         "x-ig-connection-type": "WIFI",
         "x-fb-connection-type": "WIFI",
@@ -229,7 +259,7 @@ def fetch_comment_usernames(media_id, token_record, min_id=None, progress_callba
         "x-fb-http-engine": "Liger",
         "x-fb-client-ip": "True",
         "x-fb-server-cluster": "True",
-    }
+    })
 
     params = {
         "min_id": min_id,
@@ -253,6 +283,7 @@ def fetch_comment_usernames(media_id, token_record, min_id=None, progress_callba
                 headers=headers,
                 timeout=10,
             )
+            _update_session_from_response(username, response)
         except Exception as error:
             logger.error("Yorum API istegi basarisiz (sayfa %d): %s", page_count, error)
             break
@@ -298,20 +329,17 @@ def fetch_comment_usernames(media_id, token_record, min_id=None, progress_callba
 
 
 def fetch_liker_usernames(media_id, token_record, progress_callback=None):
+    username = _get_username(token_record)
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
     android_id = token_record.get("android_id_yeni", "")
     device_id = token_record.get("device_id", "")
 
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
+    headers.update({
         "x-ig-app-locale": "tr_TR",
         "x-ig-device-locale": "tr_TR",
         "x-ig-mapped-locale": "tr_TR",
-        "x-ig-android-id": f"android-{android_id}",
-        "x-ig-device-id": device_id,
-        "x-ig-app-id": IG_APP_ID,
         "x-ig-capabilities": "3brTv10=",
         "x-ig-connection-type": "WIFI",
         "x-fb-connection-type": "WIFI",
@@ -319,7 +347,7 @@ def fetch_liker_usernames(media_id, token_record, progress_callback=None):
         "x-fb-http-engine": "Liger",
         "x-fb-client-ip": "True",
         "x-fb-server-cluster": "True",
-    }
+    })
 
     usernames = set()
     try:
@@ -328,6 +356,7 @@ def fetch_liker_usernames(media_id, token_record, progress_callback=None):
             headers=headers,
             timeout=15,
         )
+        _update_session_from_response(username, response)
         if response.status_code in [401, 403]:
             return {"ok": False, "status": response.status_code, "usernames": usernames}
 
@@ -339,9 +368,9 @@ def fetch_liker_usernames(media_id, token_record, progress_callback=None):
 
         json_data = response.json()
         for user in json_data.get("users", []):
-            username = user.get("username")
-            if username:
-                usernames.add(username)
+            uname = user.get("username")
+            if uname:
+                usernames.add(uname)
                 
     except Exception as error:
         logger.error("Begeni API istegi basarisiz: %s", error)
@@ -350,6 +379,7 @@ def fetch_liker_usernames(media_id, token_record, progress_callback=None):
 
 
 def fetch_group_threads(token_record):
+    username = _get_username(token_record)
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
     android_id = token_record.get("android_id_yeni", "")
@@ -358,12 +388,8 @@ def fetch_group_threads(token_record):
     if not all([token, user_agent, android_id, device_id]):
         return {"ok": False, "error": "Eksik token bilgileri"}
     
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
-        "x-ig-app-id": IG_APP_ID,
-        "x-ig-android-id": f"android-{android_id}",
-        "x-ig-device-id": device_id,
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
+    headers.update({
         "x-ig-app-locale": "tr_TR",
         "x-ig-device-locale": "tr_TR",
         "x-ig-mapped-locale": "tr_TR",
@@ -371,7 +397,7 @@ def fetch_group_threads(token_record):
         "x-ig-connection-type": "WIFI",
         "x-fb-connection-type": "WIFI",
         "accept-language": "tr-TR, en-US",
-    }
+    })
     
     try:
         response = requests.get(
@@ -379,6 +405,7 @@ def fetch_group_threads(token_record):
             headers=headers,
             timeout=15,
         )
+        _update_session_from_response(username, response)
         if response.status_code != 200:
             return {"ok": False, "error": f"HTTP {response.status_code}"}
         
@@ -414,6 +441,7 @@ def fetch_group_threads(token_record):
 
 
 def fetch_group_members(token_record, thread_id):
+    username = _get_username(token_record)
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
     android_id = token_record.get("android_id_yeni", "")
@@ -422,12 +450,8 @@ def fetch_group_members(token_record, thread_id):
     if not all([token, user_agent, android_id, device_id]):
         return {"ok": False, "error": "Eksik token bilgileri"}
     
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
-        "x-ig-app-id": IG_APP_ID,
-        "x-ig-android-id": f"android-{android_id}",
-        "x-ig-device-id": device_id,
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
+    headers.update({
         "x-ig-app-locale": "tr_TR",
         "x-ig-device-locale": "tr_TR",
         "x-ig-mapped-locale": "tr_TR",
@@ -435,7 +459,7 @@ def fetch_group_members(token_record, thread_id):
         "x-ig-connection-type": "WIFI",
         "x-fb-connection-type": "WIFI",
         "accept-language": "tr-TR, en-US",
-    }
+    })
     
     try:
         response = requests.get(
@@ -443,6 +467,7 @@ def fetch_group_members(token_record, thread_id):
             headers=headers,
             timeout=15,
         )
+        _update_session_from_response(username, response)
         if response.status_code != 200:
             return {"ok": False, "error": f"HTTP {response.status_code}"}
         
@@ -482,6 +507,7 @@ def fetch_group_media(token_record, thread_id, target_date=None):
     if target_date is None:
         target_date = datetime.datetime.now(gmt3)
     
+    username = _get_username(token_record)
     token = token_record.get("token", "")
     user_agent = token_record.get("user_agent", "")
     android_id = token_record.get("android_id_yeni", "")
@@ -494,12 +520,8 @@ def fetch_group_media(token_record, thread_id, target_date=None):
     if not all([token, user_agent, android_id, device_id]):
         return {"ok": False, "error": "Eksik token bilgileri"}
     
-    headers = {
-        "authorization": token,
-        "user-agent": user_agent,
-        "x-ig-app-id": IG_APP_ID,
-        "x-ig-android-id": f"android-{android_id}",
-        "x-ig-device-id": device_id,
+    headers = build_auth_headers(token, user_agent, android_id, device_id, username=username)
+    headers.update({
         "x-ig-app-locale": "tr_TR",
         "x-ig-device-locale": "tr_TR",
         "x-ig-mapped-locale": "tr_TR",
@@ -511,7 +533,7 @@ def fetch_group_media(token_record, thread_id, target_date=None):
         "ig-u-ds-user-id": user_id,
         "priority": "u=3",
         "x-fb-friendly-name": "IgApi: direct_v2_threads_media",
-    }
+    })
     
     target_start = target_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=gmt3)
     target_end = target_date.replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=gmt3)
@@ -548,6 +570,7 @@ def fetch_group_media(token_record, thread_id, target_date=None):
             headers=headers,
             timeout=15,
         )
+        _update_session_from_response(username, response)
         if response.status_code != 200:
             return {"ok": False, "error": f"HTTP {response.status_code}"}
         

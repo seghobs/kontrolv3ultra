@@ -6,7 +6,7 @@ import time
 from flask import Blueprint, jsonify, render_template, request
 
 from donustur import donustur
-from log_in import giris_yap
+from log_in import giris_yap, LoginError
 
 from app_core.instagram_api import fetch_group_members, fetch_group_threads, fetch_group_media, get_post_sender
 from app_core.storage import load_exemptions, save_exemptions, load_global_exemptions
@@ -269,9 +269,24 @@ def login_and_get_token():
     if not username or not password or not android_id or not user_agent or not device_id:
         return jsonify({"token": None, "message": "kullanici_adi, sifre, android_id, user_agent ve device_id zorunludur"}), 400
 
-    token_value, android_id, user_agent, device_id = giris_yap(
-        username, password, android_id, user_agent, device_id
-    )
+    try:
+        token_value, android_id, user_agent, device_id = giris_yap(
+            username, password, android_id, user_agent, device_id
+        )
+    except LoginError as error:
+        logger.error("Login hatasi: @%s | %s | Tip: %s", username, error.message, error.error_type)
+        return jsonify({
+            "token": None,
+            "message": error.message,
+            "error_type": error.error_type,
+        }), 400
+    except Exception as error:
+        logger.error("Beklenmeyen login hatasi: @%s | %s", username, error)
+        return jsonify({
+            "token": None,
+            "message": f"Giris sirasinda hata olustu: {error}",
+            "error_type": "UNKNOWN",
+        }), 500
 
     if token_value:
         upsert_login_token(username, password, token_value, android_id, user_agent, device_id)

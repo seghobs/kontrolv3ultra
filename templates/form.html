@@ -421,17 +421,16 @@
                                 display: flex;
                                 align-items: center;
                                 justify-content: space-between;
-                                background: linear-gradient(145deg, rgba(30, 30, 45, 0.4) 0%, rgba(20, 20, 35, 0.6) 100%);
-                                border: 1px solid rgba(168, 85, 247, 0.2);
-                                border-radius: 16px;
+                                background: rgba(255, 255, 255, 0.05);
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                                border-radius: 12px;
                                 padding: 12px 16px;
                                 cursor: pointer;
-                                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                                transition: all 0.3s ease;
                             }
                             .modern-checkbox-wrapper:hover {
-                                border-color: rgba(168, 85, 247, 0.5);
-                                background: linear-gradient(145deg, rgba(35, 35, 55, 0.6) 0%, rgba(25, 25, 45, 0.8) 100%);
-                                box-shadow: 0 4px 15px rgba(168, 85, 247, 0.15);
+                                background: rgba(255, 255, 255, 0.08);
+                                border-color: rgba(255, 255, 255, 0.2);
                             }
                             .modern-checkbox-wrapper .checkbox-content {
                                 display: flex;
@@ -442,8 +441,8 @@
                                 width: 36px;
                                 height: 36px;
                                 border-radius: 10px;
-                                background: rgba(168, 85, 247, 0.15);
-                                color: #a855f7;
+                                background: rgba(120, 119, 198, 0.15);
+                                color: #7877c6;
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
@@ -451,8 +450,8 @@
                                 transition: all 0.3s ease;
                             }
                             .modern-checkbox-wrapper:hover .icon-box {
-                                background: rgba(168, 85, 247, 0.25);
-                                color: #c084fc;
+                                background: rgba(120, 119, 198, 0.25);
+                                color: #9392e6;
                             }
                             .modern-checkbox-wrapper .text-content {
                                 display: flex;
@@ -502,8 +501,8 @@
                                 box-shadow: 0 2px 4px rgba(0,0,0,0.3);
                             }
                             .toggle-switch input:checked + .slider {
-                                background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
-                                border-color: #a855f7;
+                                background: #7877c6;
+                                border-color: #7877c6;
                             }
                             .toggle-switch input:checked + .slider:before {
                                 transform: translateX(18px);
@@ -511,7 +510,7 @@
                             
                             /* Kırmızı konseptli switch için override */
                             .toggle-switch input:checked + .slider.red-slider {
-                                background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                                background: #ef4444;
                                 border-color: #ef4444;
                             }
                             .modern-checkbox-wrapper:hover .icon-box[style*="color: #ef4444"] {
@@ -599,8 +598,8 @@
                                     .dropdown-trigger {
                                         width: 100%;
                                         padding: 12px 16px;
-                                        background: linear-gradient(135deg, rgba(30, 30, 50, 0.9) 0%, rgba(20, 20, 35, 0.95) 100%);
-                                        border: 1px solid rgba(168, 85, 247, 0.3);
+                                        background: rgba(255, 255, 255, 0.08);
+                                        border: 1px solid rgba(255, 255, 255, 0.15);
                                         border-radius: 12px;
                                         color: #fff;
                                         font-size: 14px;
@@ -609,16 +608,16 @@
                                         display: flex;
                                         justify-content: space-between;
                                         align-items: center;
-                                        transition: all 0.25s ease;
-                                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                                        transition: all 0.3s ease;
                                     }
                                     .dropdown-trigger:hover {
-                                        border-color: rgba(168, 85, 247, 0.6);
-                                        box-shadow: 0 6px 20px rgba(168, 85, 247, 0.15);
+                                        background: rgba(255, 255, 255, 0.1);
+                                        border-color: rgba(255, 255, 255, 0.25);
                                     }
                                     .dropdown-trigger.active {
-                                        border-color: #a855f7;
-                                        box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+                                        background: rgba(255, 255, 255, 0.12);
+                                        border-color: #7877c6;
+                                        box-shadow: 0 0 0 0.2rem rgba(120, 119, 198, 0.25);
                                     }
                                     .dropdown-text {
                                         overflow: hidden;
@@ -628,21 +627,23 @@
                                     }
                                     .dropdown-arrow {
                                         transition: transform 0.3s ease;
-                                        color: #a855f7;
-                                        font-size: 12px;
+                                        color: rgba(255, 255, 255, 0.6);
+                                        font-size: 13px;
                                     }
                                     .dropdown-trigger.active .dropdown-arrow {
                                         transform: rotate(180deg);
+                                        color: #7877c6;
                                     }
                                     .dropdown-menu {
                                         position: absolute;
-                                        top: calc(100% + 8px);
+                                        top: calc(100% + 6px);
                                         left: 0;
                                         right: 0;
-                                        background: linear-gradient(180deg, #1e1e35 0%, #15152a 100%);
-                                        border: 1px solid rgba(168, 85, 247, 0.3);
+                                        background: rgba(25, 28, 40, 0.95);
+                                        backdrop-filter: blur(12px);
+                                        border: 1px solid rgba(255, 255, 255, 0.15);
                                         border-radius: 12px;
-                                        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 85, 247, 0.1);
+                                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
                                         z-index: 1000;
                                         opacity: 0;
                                         visibility: hidden;
@@ -661,18 +662,18 @@
                                     .dropdown-search {
                                         width: calc(100% - 16px);
                                         margin: 8px;
-                                        padding: 12px 16px;
-                                        background: rgba(0, 0, 0, 0.4);
+                                        padding: 10px 14px;
+                                        background: rgba(255, 255, 255, 0.05);
                                         border: 1px solid rgba(255, 255, 255, 0.1);
                                         border-radius: 8px;
                                         color: #fff;
                                         font-size: 13px;
                                         outline: none;
-                                        transition: border-color 0.2s;
+                                        transition: all 0.3s ease;
                                     }
                                     .dropdown-search:focus {
-                                        border-color: rgba(168, 85, 247, 0.6);
-                                        box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.15);
+                                        background: rgba(255, 255, 255, 0.08);
+                                        border-color: #7877c6;
                                     }
                                     .dropdown-search::placeholder {
                                         color: rgba(255, 255, 255, 0.4);
@@ -680,39 +681,43 @@
                                     .dropdown-options {
                                         overflow-y: auto;
                                         max-height: 220px;
-                                        padding: 8px;
+                                        padding: 0 8px 8px 8px;
                                     }
                                     .dropdown-options::-webkit-scrollbar {
-                                        width: 6px;
+                                        width: 5px;
                                     }
                                     .dropdown-options::-webkit-scrollbar-track {
-                                        background: rgba(255, 255, 255, 0.05);
+                                        background: rgba(255, 255, 255, 0.02);
                                         border-radius: 3px;
                                     }
                                     .dropdown-options::-webkit-scrollbar-thumb {
-                                        background: rgba(168, 85, 247, 0.4);
+                                        background: rgba(255, 255, 255, 0.15);
                                         border-radius: 3px;
+                                    }
+                                    .dropdown-options::-webkit-scrollbar-thumb:hover {
+                                        background: rgba(255, 255, 255, 0.3);
                                     }
                                     .dropdown-option {
                                         padding: 12px 14px;
                                         border-radius: 8px;
                                         cursor: pointer;
-                                        transition: all 0.15s ease;
+                                        transition: all 0.2s ease;
                                         color: rgba(255, 255, 255, 0.85);
                                         font-size: 13px;
                                         display: flex;
                                         align-items: center;
                                         gap: 10px;
+                                        margin-bottom: 2px;
                                     }
                                     .dropdown-option:hover {
-                                        background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+                                        background: rgba(255, 255, 255, 0.08);
                                         color: #fff;
                                     }
                                     .dropdown-option.selected {
-                                        background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+                                        background: rgba(120, 119, 198, 0.2);
+                                        border-left: 3px solid #7877c6;
                                         color: #fff;
                                         font-weight: 600;
-                                        box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
                                     }
                                     .dropdown-option .icon {
                                         width: 20px;

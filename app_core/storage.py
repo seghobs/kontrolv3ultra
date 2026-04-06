@@ -2,6 +2,9 @@ import json
 import logging
 import sqlite3
 from datetime import datetime
+import pytz
+
+GMT3 = pytz.timezone('Europe/Istanbul')
 
 from app_core.config import DB_FILE, EXEMPTIONS_FILE, TOKEN_FILE, TOKENS_FILE
 
