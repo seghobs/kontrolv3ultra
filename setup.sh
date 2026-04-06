@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Kontrol Project Auto Setup - Tek Komutla Kurulum
-# Kullanim: bash -c "$(curl -sL https://raw.githubusercontent.com/seghobs/kontrolv3ultra/main/setup.sh)"
+# Kullanim: bash -c "$(curl -sL https://raw.githubusercontent.com/seghobs/kontrolv3ultra/kontrolv1/setup.sh)"
 
 echo "========================================="
 echo "Kontrol Projesi Otomatik Kuruluyor..."
@@ -16,7 +16,7 @@ fi
 # Projeyi GitHub'dan indir
 echo "Proje indiriliyor..."
 rm -rf mysite 2>/dev/null
-git clone https://github.com/seghobs/kontrolv3ultra.git mysite
+git clone -b kontrolv1 https://github.com/seghobs/kontrolv3ultra.git mysite
 
 if [ ! -d "mysite" ]; then
     echo "HATA: Proje indirilemedi!"
